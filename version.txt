@@ -1,0 +1,2 @@
+version=10.0.0
+description=Self-Hosted Linux Edition — web setup wizard, systemd service, backup CLI

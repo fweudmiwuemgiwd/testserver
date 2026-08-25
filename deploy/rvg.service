@@ -1,0 +1,33 @@
+# RVG Gateway — systemd service unit
+# Installed automatically by install.sh to /etc/systemd/system/rvg.service
+[Unit]
+Description=RVG Gateway — Multi-Protocol Proxy Management Panel
+Documentation=https://github.com/arvin341az-glitch/RVG
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=rvg
+Group=rvg
+WorkingDirectory=/opt/rvg
+EnvironmentFile=/etc/rvg.conf
+ExecStart=/opt/rvg/venv/bin/python /opt/rvg/main.py
+Restart=always
+RestartSec=3
+TimeoutStopSec=15
+KillSignal=SIGINT
+
+# Resource limits (many concurrent proxy connections)
+LimitNOFILE=1048576
+LimitNPROC=64000
+
+# Reasonable hardening (paths under /var/lib/rvg and /opt/rvg stay writable)
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/rvg /opt/rvg
+
+[Install]
+WantedBy=multi-user.target
