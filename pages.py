@@ -210,27 +210,21 @@ input:focus{border-color:var(--accent);background:transparent;box-shadow:0 0 0 3
         </div>
         <div class="grid2">
           <div>
-            <label for="pport">پورت کانفیگ‌ها</label>
-            <div class="inp-wrap f-field">
-              <input type="number" id="pport" placeholder="—" min="1" max="65535" dir="ltr" style="text-align:left">
-              <i class="ti ti-lock ic"></i>
-            </div>
-          </div>
-          <div>
             <label for="aport">پورت اجرای پنل</label>
             <div class="inp-wrap f-field">
-              <input type="number" id="aport" min="1" max="65535" dir="ltr" style="text-align:left">
+              <input type="number" id="aport" min="1" max="65535" dir="ltr" style="text-align:left" oninput="if(!pportTouched) $('pport').value = this.value">
               <i class="ti ti-plug ic"></i>
             </div>
           </div>
+          <div>
+            <label for="pport">پورت TLS لینک‌ها</label>
+            <div class="inp-wrap f-field">
+              <input type="number" id="pport" min="1" max="65535" dir="ltr" style="text-align:left" oninput="pportTouched=true">
+              <i class="ti ti-lock ic"></i>
+            </div>
+          </div>
         </div>
-        <div class="note" style="margin-top:10px">
-          <i class="ti ti-info-circle" style="flex-shrink:0;margin-top:2px"></i>
-          <span>به‌صورت پیش‌فرض خودِ پنل با TLS (گواهی self-signed) روی همان پورت اجرا سرو می‌کند؛
-          پس این مقدار خودکار با پورت پنل هماهنگ می‌شود و کانفیگ‌ها همان‌جا کار می‌کنند.
-          اگر جلوی پنل Caddy/nginx با گواهی معتبر گذاشته‌اید
-          (<span class="mono" dir="ltr">RVG_TLS=0</span>)، اینجا پورت ترمینیتور TLS (معمولاً ۴۴۳) را وارد کنید.</span>
-        </div>
+        <div class="cl" style="margin-top:8px"><i class="ti ti-info-circle"></i><span>پنل خودش مستقیم روی همین پورت با یک گواهی TLS (self-signed) سرو می‌کنه — برای همین این دو پورت باید یکی باشن، مگر این‌که خودت پشت یه ریورس‌پروکسی با گواهی واقعی (مثلاً Let's Encrypt) باشی و بدونی چیکار می‌کنی.</span></div>
         <label class="switch-row">
           <div class="sw-txt"><b>اتصال به سرور مرکزی (اختیاری)</b><span>دریافت اعلان‌ها و پشتیبانی از توسعه‌دهنده. اطلاعات شما محفوظ است.</span></div>
           <span class="switch"><input type="checkbox" id="phone"><span class="slider"></span></span>
@@ -275,6 +269,7 @@ input:focus{border-color:var(--accent);background:transparent;box-shadow:0 0 0 3
 const $ = id => document.getElementById(id);
 let step = 1;
 const LAST = 3;
+let pportTouched = false;
 
 function togglePw(inpId, eyeId){
   const pw = $(inpId), eye = $(eyeId);
@@ -315,10 +310,7 @@ function go(n){
   $('next').innerHTML = n === LAST ? '<i class="ti ti-player-play"></i> پایان راه‌اندازی'
                        : 'ادامه <i class="ti ti-arrow-left"></i>';
   step = n;
-  if (n === 3){
-    if (!$('aport').value) $('aport').value = CURRENT_PORT;
-    applyPportDefault();
-  }
+  if (n === 3 && !$('aport').value) { $('aport').value = CURRENT_PORT; $('pport').value = CURRENT_PORT; }
 }
 
 function validate(){
@@ -330,7 +322,7 @@ function validate(){
     const h = ($('host').value || '').trim();
     if (h && /[\s\/@]/.test(h)){ return 'آدرس عمومی نامعتبر است.'; }
     const p = parseInt($('pport').value), a = parseInt($('aport').value);
-    if ($('pport').value && (!p || p < 1 || p > 65535)) return 'پورت کانفیگ‌ها نامعتبر است.';
+    if (!p || p < 1 || p > 65535) return 'پورت TLS نامعتبر است.';
     if (!a || a < 1 || a > 65535) return 'پورت پنل نامعتبر است.';
   }
   return null;
@@ -352,8 +344,7 @@ $('next').addEventListener('click', async () => {
       body: JSON.stringify({
         password: $('pw').value,
         host: ($('host').value || '').trim(),
-        /* خالی = خودکار → از پورت واقعی پنل پیروی می‌کند */
-        public_port: $('pport').value ? parseInt($('pport').value) : null,
+        public_port: parseInt($('pport').value),
         port: parseInt($('aport').value),
         phone_home: $('phone').checked,
       })
@@ -361,8 +352,8 @@ $('next').addEventListener('click', async () => {
     if (!r.ok){ const d = await r.json().catch(()=>({})); throw new Error(d.detail || 'خطا در ذخیره تنظیمات'); }
     const d = await r.json();
     $('final-url').textContent = location.protocol + '//' + location.hostname + ':' + d.port + '/dashboard';
-    $('final-host').textContent = ($('host').value || location.hostname).trim() + ':' + (d.link_port || parseInt($('aport').value));
-    if (d.restart_required && d.port !== CURRENT_PORT) $('restart-note').style.display = 'flex';
+    $('final-host').textContent = ($('host').value || location.hostname).trim() + ':' + parseInt($('pport').value);
+    if (d.port !== CURRENT_PORT) $('restart-note').style.display = 'flex';
     document.querySelectorAll('.step-dot').forEach(el => el.classList.add('done'));
     document.querySelector('.actions').style.display = 'none';
     go(4);
@@ -375,33 +366,7 @@ $('next').addEventListener('click', async () => {
 });
 
 let CURRENT_PORT = 8080;
-let LINK_TLS = true;        /* پنل خودش TLS self-signed سرو می‌کند؟ */
-let PPORT_AUTO = true;      /* تا وقتی true است، pport با aport هماهنگ می‌ماند */
-
-function applyPportDefault(){
-  if (!PPORT_AUTO) return;
-  const base = parseInt($('aport').value) || CURRENT_PORT;
-  /* TLS داخلی: لینک‌ها همان پورت پنل را می‌گیرند؛ TLS خارجی: ترمینیتور (۴۴۳) */
-  $('pport').value = LINK_TLS ? String(base) : '443';
-}
-
-$('pport').addEventListener('input', () => { PPORT_AUTO = false; });
-$('aport').addEventListener('input', applyPportDefault);
-
-fetch('/api/setup/status').then(r=>r.json()).then(d=>{
-  CURRENT_PORT = d.port || 8080;
-  LINK_TLS = d.tls !== false;
-  if (!$('aport').value) $('aport').value = CURRENT_PORT;
-  if (d.public_port_explicit && d.public_port){
-    PPORT_AUTO = false;
-    $('pport').value = d.public_port;
-  } else {
-    applyPportDefault();
-  }
-}).catch(()=>{
-  if (!$('aport').value) $('aport').value = CURRENT_PORT;
-  applyPportDefault();
-});
+fetch('/api/setup/status').then(r=>r.json()).then(d=>{ CURRENT_PORT = d.port || 8080; }).catch(()=>{});
 go(1);
 </script>
 </body></html>"""
@@ -2923,7 +2888,7 @@ a{color:inherit;text-decoration:none}
   <div class="vless-box">
     <div class="vl-header">
       <div class="vl-title"><i class="ti ti-link"></i> لینک پیش‌فرض (بدون محدودیت)</div>
-      <span class="badge bg-blue" id="vless-main-badge"><span class="dot db"></span> TLS · WS</span>
+      <span class="badge bg-blue"><span class="dot db"></span> TLS 443 · WS</span>
     </div>
     <div class="vl-code" id="vless-main">در حال دریافت...</div>
     <div class="vl-actions">
@@ -2954,6 +2919,20 @@ a{color:inherit;text-decoration:none}
     <div class="card">
       <div class="card-title"><i class="ti ti-list"></i> خلاصه کانفیگ‌ها <span class="ml-auto badge bg-blue" id="lsummary-badge">۰</span></div>
       <div id="lsummary">—</div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="card-title" style="justify-content:space-between;display:flex;align-items:center">
+      <span><i class="ti ti-terminal-2"></i> لاگ زنده‌ی پنل</span>
+      <span style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:11px;color:var(--t3);display:flex;align-items:center;gap:4px;cursor:pointer">
+          <input type="checkbox" id="live-log-autoscroll" checked style="width:14px;height:14px;cursor:pointer"> اسکرول خودکار
+        </label>
+        <button class="btn btn-g btn-sm" onclick="loadLiveLogs()" title="رفرش دستی"><i class="ti ti-refresh"></i></button>
+      </span>
+    </div>
+    <div id="live-log-box" style="max-height:320px;overflow-y:auto;font-family:monospace;font-size:11.5px;line-height:1.9;background:var(--bg2);border-radius:10px;padding:10px;direction:ltr;text-align:left">
+      <div style="color:var(--t3);direction:rtl;text-align:center;padding:20px">در حال دریافت لاگ‌ها...</div>
     </div>
   </div>
   <div class="dash-footer">
@@ -3326,8 +3305,7 @@ a{color:inherit;text-decoration:none}
         </div>
       </div>
       <div class="srv-tiles">
-        <div class="srv-tile"><div class="srv-tile-icon"><i class="ti ti-route"></i></div><div class="srv-tile-text"><div class="srv-tile-label">پورت کانفیگ‌ها</div><div class="srv-tile-val" id="set-link-port">—</div></div></div>
-        <div class="srv-tile"><div class="srv-tile-icon"><i class="ti ti-plug"></i></div><div class="srv-tile-text"><div class="srv-tile-label">پورت پنل</div><div class="srv-tile-val" id="set-app-port">—</div></div></div>
+        <div class="srv-tile"><div class="srv-tile-icon"><i class="ti ti-route"></i></div><div class="srv-tile-text"><div class="srv-tile-label">پورت</div><div class="srv-tile-val">443 (TLS)</div></div></div>
         <div class="srv-tile"><div class="srv-tile-icon"><i class="ti ti-versions"></i></div><div class="srv-tile-text"><div class="srv-tile-label">نسخه</div><div class="srv-tile-val">v9.2</div></div></div>
         <div class="srv-tile"><div class="srv-tile-icon"><i class="ti ti-brand-fastapi"></i></div><div class="srv-tile-text"><div class="srv-tile-label">فریم‌ورک</div><div class="srv-tile-val">FastAPI + Uvicorn</div></div></div>
         <div class="srv-tile"><div class="srv-tile-icon"><i class="ti ti-cloud"></i></div><div class="srv-tile-text"><div class="srv-tile-label">پلتفرم</div><div class="srv-tile-val">Self-hosted (Linux)</div></div></div>
@@ -3574,6 +3552,38 @@ async function fetchStats(){
     }
     renderErrs(d.recent_errors||[]);
   }catch(e){console.error(e)}
+}
+const LOG_LEVEL_COLOR = {err:'var(--red-t)', warn:'var(--amber-t)', ok:'var(--green-t)', info:'var(--t2)'};
+const LOG_SOURCE_LABEL = {
+  system: 'سیستم', 'http-error': 'خطای HTTP', 'sing-box': 'sing-box',
+};
+function logSourceLabel(src){
+  if (LOG_SOURCE_LABEL[src]) return LOG_SOURCE_LABEL[src];
+  if (src && src.startsWith('mtproto:')) return 'MTProto · ' + src.slice(8);
+  return src || '—';
+}
+async function loadLiveLogs(){
+  const box = document.getElementById('live-log-box');
+  if (!box) return;
+  try{
+    const r = await authF('/api/live-logs'), d = await r.json();
+    const logs = d.logs || [];
+    const wasAtBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+    if (!logs.length){
+      box.innerHTML = '<div style="color:var(--t3);direction:rtl;text-align:center;padding:20px">هنوز لاگی ثبت نشده</div>';
+      return;
+    }
+    box.innerHTML = logs.map(l => {
+      const color = LOG_LEVEL_COLOR[l.level] || 'var(--t2)';
+      const t = l.time ? new Date(l.time).toLocaleTimeString('fa-IR') : '';
+      return `<div style="margin-bottom:2px"><span style="color:var(--t3)">${t}</span> <span style="color:${color};font-weight:700">[${esc(logSourceLabel(l.source))}]</span> <span style="color:var(--t1)">${esc(l.message||'')}</span></div>`;
+    }).join('');
+    if (document.getElementById('live-log-autoscroll')?.checked && wasAtBottom){
+      box.scrollTop = box.scrollHeight;
+    }
+  }catch(e){
+    box.innerHTML = '<div style="color:var(--red-t);direction:rtl;text-align:center;padding:20px">خطا در دریافت لاگ‌ها</div>';
+  }
 }
 async function loadXcoreStatus(){
   const badge = document.getElementById('xcore-badge');
@@ -4662,10 +4672,7 @@ async function loadConns(){
 }
 async function loadErrs(){try{const r=await authF('/stats'),d=await r.json();renderErrs(d.recent_errors||[]);}catch(e){}}
 async function fetchDefaultVless(){
-  try{const r=await authF('/api/links'),d=await r.json();const links=d.links||[];const def=links.find(l=>l.limit_bytes===0&&l.active&&!l.expired)||links.find(l=>l.active&&!l.expired)||links[0];document.getElementById('vless-main').textContent=def?def.vless_link:'هنوز کانفیگی وجود ندارد';
-    const badge=document.getElementById('vless-main-badge');
-    if(badge&&def){const m=(def.vless_link||'').match(/@[^:]+:(\d+)/);if(m)badge.innerHTML='<span class="dot db"></span> TLS '+m[1]+' · WS';}
-  }catch(e){}
+  try{const r=await authF('/api/links'),d=await r.json();const links=d.links||[];const def=links.find(l=>l.limit_bytes===0&&l.active&&!l.expired)||links.find(l=>l.active&&!l.expired)||links[0];document.getElementById('vless-main').textContent=def?def.vless_link:'هنوز کانفیگی وجود ندارد';}catch(e){}
 }
 function cpText(id){copyToClipboard(document.getElementById(id).textContent, 'کپی شد ✓')}
 function qrFor(id){showQR(document.getElementById(id).textContent)}
@@ -4842,23 +4849,11 @@ async function toggleLoggingSetting(){
     toast('خطا در ذخیره‌ی تنظیمات','err');
   }
 }
-async function loadNetworkInfo(){
-  try{
-    const r=await authF('/api/settings/network');
-    if(!r.ok)return;
-    const d=await r.json();
-    const lp=document.getElementById('set-link-port');
-    const ap=document.getElementById('set-app-port');
-    if(lp)lp.textContent = d.effective_public_port + (d.tls ? ' (TLS)' : ' (TLS خارجی)');
-    if(ap)ap.textContent = d.port + ' (' + (d.tls?'HTTPS':'HTTP') + ')';
-  }catch(e){}
-}
 document.addEventListener('DOMContentLoaded', async () => {
   await checkAuth();
   initCharts();
   document.getElementById('set-host').textContent = location.host;
   loadLoggingSetting();
-  loadNetworkInfo();
   document.getElementById('sub-all-url') && 
     (document.getElementById('sub-all-url').textContent = 
       location.protocol + '//' + location.host + '/sub-all');
@@ -4896,6 +4891,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadSysRes();
   loadServerLocation();
   loadXcoreStatus();
+
+  loadLiveLogs();
+  setInterval(() => { if (!document.hidden && document.getElementById('pg-overview').classList.contains('on')) loadLiveLogs(); }, 4000);
 
   setInterval(() => { if (!document.hidden) fetchStats(); }, 5000);
   setInterval(() => { if (!document.hidden) loadSysRes(); }, 4000);

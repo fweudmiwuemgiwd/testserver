@@ -14,7 +14,6 @@
 import asyncio
 import ipaddress
 import os
-import pwd
 import platform
 import re
 import resource
@@ -33,21 +32,6 @@ import httpx
 logger = logging.getLogger("RVG-Gateway")
 
 from appconfig import resolve_data_dir
-
-def _current_run_user() -> str:
-    """کاربر واقعی‌ای که پروسه‌ی پنل زیرش اجرا می‌شه (مثلاً 'rvg' در نصب
-    self-hosted با systemd، نه لزوماً root). باینری mtproto-proxy با فلگ -u
-    بعد از بایند پورت، setuid به این کاربر می‌زنه؛ اگه اینجا همیشه 'root'
-    هاردکد بشه و پروسه از قبل غیر-root باشه (دقیقاً حالت سرویس systemd این
-    پروژه)، setuid به root از یک کاربر غیر-root شکست می‌خوره و باینری بلافاصله
-    با خطا خارج می‌شه — یعنی MTProto اصلاً بالا نمیاد، بدون هیچ نشونه‌ی
-    واضحی برای کاربر پنل. راه‌حل: همیشه کاربر واقعی جاری رو بده (setuid به
-    خودش همیشه موفقه، چه root باشه چه یک کاربر عادی مثل rvg)."""
-    try:
-        return pwd.getpwuid(os.getuid()).pw_name
-    except Exception:
-        return "root"
-
 
 DATA_DIR = resolve_data_dir()
 MTP_DIR = DATA_DIR / "mtproxy"
@@ -476,7 +460,7 @@ async def start_instance(
             "-H", str(port),        # پورت واقعی MTProto که کلاینت بهش وصل می‌شه
             "-C", str(MAX_CONN),
             "--aes-pwd", str(aes_pwd),
-            "-u", _current_run_user(),
+            "-u", "root",
             str(BACKEND_CONF),
             "--allow-skip-dh",
             "--http-stats",         # /stats روی 127.0.0.1:<control_port> — تنها راه قطعی برای

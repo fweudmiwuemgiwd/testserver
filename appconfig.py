@@ -55,6 +55,14 @@ def backups_dir() -> Path:
     return d
 
 
+def tls_dir() -> Path:
+    """گواهی self-signed پنل (برای TLS واقعی روی پورت panel در حالت self-hosted).
+    این جدا از گواهی Hysteria2 (xcore) هست — این مال خودِ FastAPI/uvicorn است."""
+    d = resolve_data_dir() / "tls"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 # ── Public host resolution (replaces Railway's RAILWAY_PUBLIC_DOMAIN) ─────────
 def get_env_public_host() -> str:
     for key in ("RVG_PUBLIC_HOST", "PUBLIC_HOST", "RVG_DOMAIN"):
