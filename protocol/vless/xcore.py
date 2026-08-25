@@ -413,8 +413,11 @@ def get_status() -> dict:
     by_kind = {}
     for d in _links.values():
         by_kind[d["kind"]] = by_kind.get(d["kind"], 0) + 1
-    return {"running": is_running(), "links_count": len(_links), "by_kind": by_kind,
-            "logs": list(_log)[-100:]}
+    return {
+        "running": is_running(), "links_count": len(_links), "by_kind": by_kind,
+        "version": SB_VERSION, "binary_installed": BIN_PATH.exists(),
+        "logs": list(_log)[-100:],
+    }
 
 
 async def restore_links(saved: dict[str, dict]):

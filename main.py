@@ -1497,7 +1497,11 @@ def _read_system_stats() -> dict:
     if psutil is None:
         return {"available": False}
 
-    cpu_total = psutil.cpu_percent(interval=0.2)
+    # نکته: interval=None یعنی نسبت به آخرین فراخوانی محاسبه می‌شه (غیربلاک‌کننده)؛
+    # قبلاً interval=0.2 بود که یعنی هر poll یه ترد رو ۲۰۰ میلی‌ثانیه قفل می‌کرد —
+    # با چند تب داشبورد باز و polling مکرر، این خودش فشار محسوسی به سرور می‌زد.
+    # اولین فراخوانی بعد از استارت سرور 0.0 برمی‌گردونه که طبیعیه.
+    cpu_total = psutil.cpu_percent(interval=None)
     cpu_per_core = psutil.cpu_percent(interval=None, percpu=True)
     try:
         freq = psutil.cpu_freq()
@@ -1569,6 +1573,12 @@ def _read_system_stats() -> dict:
 @app.get("/api/system")
 async def get_system_stats(_=Depends(require_auth)):
     return await asyncio.to_thread(_read_system_stats)
+
+@app.get("/api/xcore/status")
+async def get_xcore_status(_=Depends(require_auth)):
+    """وضعیت پروسه‌ی sing-box (موتور مشترک VLESS-Reality/Trojan-Reality/
+    Shadowsocks-Native/Hysteria2/WireGuard) — برای نمایش نسخه و سلامت روی داشبورد."""
+    return xcore.get_status()
 
 # ── Activity Logs ─────────────────────────────────────────────────────────────
 @app.get("/api/activity")
@@ -2982,7 +2992,10 @@ if __name__ == "__main__":
         app,
         host="0.0.0.0",
         port=CONFIG["port"],
-        log_level="info",
+        log_level="warning",  # access log هر request عادی (polling/stats/...) رو چاپ نکنه؛
+                              # خطاهای واقعی uvicorn.error همچنان با warning+ دیده می‌شن
+        access_log=False,    # هر endpoint polling (stats/system/links) با فرکانس بالا صدا زده
+                              # می‌شه؛ چاپ یک خط لاگ به‌ازای هر کدوم فشار I/O بی‌مورد به دیسک/کنسوله
         workers=1,
         loop="auto",         # uvloop رو در صورت نصب بودن استفاده می‌کنه، وگرنه بدون کرش fallback می‌کنه
         http="auto",

@@ -2118,22 +2118,22 @@ a{color:inherit;text-decoration:none}
         <input type="hidden" id="nl-fp" value="chrome">
       
         <input type="hidden" id="nl-proto" value="vless-ws">
-        <div class="cm-field" id="reality-dest-field" style="display:none;margin-top:10px">
-          <label><i class="ti ti-server-2" style="color:var(--accent);margin-left:4px"></i>Dest (سایت camouflage)</label>
-          <input class="cm-input" id="nl-reality-dest" type="text" placeholder="www.microsoft.com:443" value="www.microsoft.com:443">
-          <div class="cm-note" style="margin-top:8px"><i class="ti ti-info-circle"></i><span>ترافیک با این دامنه (روی پورت ۴۴۳) مقلد می‌شه؛ کلید/short-id به‌صورت خودکار ساخته می‌شه.</span></div>
-        </div>
-        <div class="cm-field" id="manual-port-field" style="display:none;margin-top:10px">
-          <label><i class="ti ti-plug-connected" style="color:var(--accent);margin-left:4px"></i>پورت (اختیاری)</label>
-          <input class="cm-input" id="nl-manual-port" type="number" min="1" max="65535" placeholder="خالی = خودکار (تصادفی آزاد)">
-          <div class="cm-note" style="margin-top:8px"><i class="ti ti-info-circle"></i><span>اگه خالی بذاری یه پورت آزاد خودکار انتخاب می‌شه؛ وگرنه دقیقاً همین پورت استفاده می‌شه (باید در فایروال باز باشه).</span></div>
-        </div>
         <div class="cm-note" style="margin-top:12px" id="transport-note"></div>
       </div>
 
-      <!-- این سه بخش عمداً خارج از stream-section هستند: وقتی Telegram Proxy یا Shadowsocks
-           انتخاب می‌شود stream-section مخفی می‌شود، اگر این بخش‌ها داخلش می‌ماندند با آن مخفی
-           می‌شدند حتی وقتی display خودشان block/flex تنظیم می‌شد. -->
+      <!-- این بخش‌ها عمداً خارج از stream-section هستند: وقتی Telegram Proxy یا Shadowsocks
+           یا REALITY/xcore انتخاب می‌شود stream-section مخفی می‌شود، اگر این بخش‌ها داخلش
+           می‌ماندند با آن مخفی می‌شدند حتی وقتی display خودشان block/flex تنظیم می‌شد. -->
+      <div class="cm-field" id="reality-dest-field" style="display:none;margin-top:10px">
+        <label><i class="ti ti-server-2" style="color:var(--accent);margin-left:4px"></i>Dest (سایت camouflage)</label>
+        <input class="cm-input" id="nl-reality-dest" type="text" placeholder="www.microsoft.com:443" value="www.microsoft.com:443">
+        <div class="cm-note" style="margin-top:8px"><i class="ti ti-info-circle"></i><span>ترافیک با این دامنه (روی پورت ۴۴۳) مقلد می‌شه؛ کلید/short-id به‌صورت خودکار ساخته می‌شه.</span></div>
+      </div>
+      <div class="cm-field" id="manual-port-field" style="display:none;margin-top:10px">
+        <label><i class="ti ti-plug-connected" style="color:var(--accent);margin-left:4px"></i>پورت (اختیاری)</label>
+        <input class="cm-input" id="nl-manual-port" type="number" min="1" max="65535" placeholder="خالی = خودکار (تصادفی آزاد)">
+        <div class="cm-note" style="margin-top:8px"><i class="ti ti-info-circle"></i><span>اگه خالی بذاری یه پورت آزاد خودکار انتخاب می‌شه؛ وگرنه دقیقاً همین پورت استفاده می‌شه (باید در فایروال باز باشه).</span></div>
+      </div>
       <div class="cm-note" style="margin-top:12px;display:none" id="mtproto-note"></div>
 
       <div class="cm-section" id="ss-cipher-field" style="display:none;margin-bottom:0">
@@ -2806,6 +2806,7 @@ a{color:inherit;text-decoration:none}
     <div class="tb-right">
       <span class="badge bg-green"><span class="dot dg pulse"></span> فعال</span>
       <span class="badge bg-blue" id="uptime-badge">—</span>
+      <span class="badge" id="xcore-badge" style="background:var(--accent-d);color:var(--accent)" title="موتور VLESS-Reality / Trojan-Reality / Shadowsocks-Native / Hysteria2 / WireGuard">—</span>
       <button class="btn btn-p btn-sm" onclick="refreshAll()"><i class="ti ti-refresh"></i> رفرش</button>
     </div>
   </div>
@@ -3369,6 +3370,39 @@ function toast(msg,type=''){
   t.textContent=msg;t.className='toast show'+(type?' '+type:'');
   setTimeout(()=>t.classList.remove('show'),2400);
 }
+function copyToClipboard(text, successMsg){
+  successMsg = successMsg || 'کپی شد ✓';
+  // navigator.clipboard فقط روی HTTPS/localhost کار می‌کنه (secure context)؛
+  // چون پنل self-hosted اغلب روی HTTP ساده (بدون SSL) بالا میاد، این API
+  // بی‌صدا شکست می‌خورد (نه خطا، نه موفقیت) — برای همین یه fallback با
+  // document.execCommand('copy') داریم که روی HTTP هم کار می‌کنه.
+  if (window.isSecureContext && navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(
+      () => toast(successMsg, 'ok'),
+      () => legacyCopy(text, successMsg)
+    );
+  } else {
+    legacyCopy(text, successMsg);
+  }
+}
+function legacyCopy(text, successMsg){
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.top = '-9999px';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (ok) toast(successMsg, 'ok');
+    else toast('کپی خودکار پشتیبانی نمی‌شه — دستی انتخاب و کپی کن', 'err');
+  }catch(e){
+    toast('کپی خودکار پشتیبانی نمی‌شه — دستی انتخاب و کپی کن', 'err');
+  }
+}
 function fmtB(b){if(!b||b===0)return '0 B';if(b<1024)return b+' B';if(b<1024**2)return (b/1024).toFixed(1)+' KB';if(b<1024**3)return (b/1024**2).toFixed(2)+' MB';return (b/1024**3).toFixed(2)+' GB'}
 function toFa(n){return String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d])}
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -3502,6 +3536,30 @@ async function fetchStats(){
     }
     renderErrs(d.recent_errors||[]);
   }catch(e){console.error(e)}
+}
+async function loadXcoreStatus(){
+  const badge = document.getElementById('xcore-badge');
+  if(!badge) return;
+  try{
+    const r = await authF('/api/xcore/status'), d = await r.json();
+    if(!d.binary_installed){
+      badge.innerHTML = '<i class="ti ti-download"></i> sing-box نصب نشده';
+      badge.style.color = 'var(--t3)';
+      return;
+    }
+    if(d.links_count === 0){
+      badge.innerHTML = `<i class="ti ti-circle-dashed"></i> sing-box v${d.version} · بدون سرویس فعال`;
+      badge.style.color = 'var(--t3)';
+    } else if(d.running){
+      badge.innerHTML = `<i class="ti ti-circle-check-filled" style="color:var(--green-t)"></i> sing-box v${d.version} · ${toFa(d.links_count)} سرویس فعال`;
+      badge.style.color = 'var(--green-t)';
+    } else {
+      badge.innerHTML = `<i class="ti ti-alert-triangle" style="color:var(--red-t)"></i> sing-box v${d.version} · بالا نیامده (${toFa(d.links_count)} سرویس تعریف‌شده)`;
+      badge.style.color = 'var(--red-t)';
+    }
+  }catch(e){
+    badge.innerHTML = '<i class="ti ti-question-mark"></i> وضعیت sing-box نامشخص';
+  }
 }
 function renderErrs(errs){
   const el=document.getElementById('errs-full');if(!el)return;
@@ -3644,8 +3702,8 @@ async function loadLinks(){
     ? `<button class="btn btn-sm btn-pur btn-icon" onclick="openAdTagModal('${l.uuid}','${esc(l.label)}','${esc(l.ad_tag||'')}')" title="تنظیم تبلیغ کانال"><i class="ti ti-speakerphone"></i></button>`
     : '';
   const idChip = isMt
-    ? `<span class="cfg-uuid-mini" onclick="navigator.clipboard.writeText('${esc(l.mtproto_secret||'')}').then(()=>toast('سکرت کپی شد ✓','ok'))" title="سکرت کامل: ${esc(l.mtproto_secret||'')}"><i class="ti ti-key"></i> ${esc((l.mtproto_secret||'').slice(0,10))}…</span>`
-    : `<span class="cfg-uuid-mini" onclick="navigator.clipboard.writeText('${l.uuid}').then(()=>toast('UUID کپی شد','ok'))" title="${l.uuid}"><i class="ti ti-fingerprint"></i> ${l.uuid.slice(0,10)}…</span>`;
+    ? `<span class="cfg-uuid-mini" onclick="copyToClipboard('${esc(l.mtproto_secret||'')}', 'سکرت کپی شد ✓')" title="سکرت کامل: ${esc(l.mtproto_secret||'')}"><i class="ti ti-key"></i> ${esc((l.mtproto_secret||'').slice(0,10))}…</span>`
+    : `<span class="cfg-uuid-mini" onclick="copyToClipboard('${l.uuid}', 'UUID کپی شد')" title="${l.uuid}"><i class="ti ti-fingerprint"></i> ${l.uuid.slice(0,10)}…</span>`;
   const nodeBadge = isNode ? `<span class="node-origin" style="margin-left:6px"><i class="ti ti-topology-star-3"></i> نود: ${esc(l._nodeName)}</span>` : '';
   return `<div class="cfg-card ${cardCls} ${selectedLinkUuids.has(l.uuid)?'selected':''}" data-uuid="${l.uuid}">
     <div class="cfg-row">
@@ -3679,10 +3737,10 @@ async function loadLinks(){
         <div class="cfg-actions">
         <button class="tog${allowed?' on':''}" onclick="toggleActive('${l.uuid}',${!l.active}${isNode?`,'${l._nodeId}'`:''})" title="فعال/غیرفعال"></button>
         ${!isNode?adBtn:''}
-        <button class="btn btn-sm btn-g btn-icon" onclick="navigator.clipboard.writeText('${esc(l.vless_link)}').then(()=>toast('لینک کپی شد','ok'))" title="کپی لینک"><i class="ti ti-copy"></i></button>
+        <button class="btn btn-sm btn-g btn-icon" onclick="copyToClipboard('${esc(l.vless_link)}', 'لینک کپی شد')" title="کپی لینک"><i class="ti ti-copy"></i></button>
         ${isMt
           ? `<button class="btn btn-sm btn-g btn-icon" onclick="openMtInfoModal('${esc(l.label)}','${esc(l.mtproto_secret||'')}','${esc(l.vless_link)}',${!!l.mtproto_public_host})" title="اطلاعات پروکسی"><i class="ti ti-info-circle"></i></button>`
-          : `<button class="btn btn-sm btn-g btn-icon" onclick="navigator.clipboard.writeText('${esc(l.sub_url)}').then(()=>toast('Sub کپی شد','ok'))" title="Sub URL"><i class="ti ti-rss"></i></button>
+          : `<button class="btn btn-sm btn-g btn-icon" onclick="copyToClipboard('${esc(l.sub_url)}', 'Sub کپی شد')" title="Sub URL"><i class="ti ti-rss"></i></button>
         <button class="btn btn-sm btn-g btn-icon" onclick="showQR('${esc(l.vless_link)}')" title="QR"><i class="ti ti-qrcode"></i></button>`
         }
         ${!isNode?`<button class="btn btn-sm btn-amber btn-icon" onclick="openEditLink('${l.uuid}')" title="ویرایش"><i class="ti ti-edit"></i></button>`:`<button class="btn btn-sm btn-amber btn-icon" onclick="openEditLink('${l.uuid}','${l._nodeId}')" title="ویرایش از راه دور"><i class="ti ti-edit"></i></button>`}
@@ -4171,7 +4229,7 @@ function openMtInfoModal(label, secret, fullLink, hasPublicHost){
 
 function cpMtiField(id, msg){
   const el = document.getElementById(id);
-  navigator.clipboard.writeText(el.textContent).then(()=>toast(msg,'ok'));
+  copyToClipboard(el.textContent, msg);
 }
 
 async function submitAdTag(){
@@ -4256,13 +4314,13 @@ function renderSubsGrid(subs){
       </div>
       <div class="sub-card-url-row">
         <span class="sub-card-url-text">${esc(s.public_url)}</span>
-        <button class="sub-card-url-copy" onclick="navigator.clipboard.writeText('${esc(s.public_url)}').then(()=>toast('لینک پابلیک کپی شد','ok'))" title="کپی"><i class="ti ti-copy"></i></button>
+        <button class="sub-card-url-copy" onclick="copyToClipboard('${esc(s.public_url)}', 'لینک پابلیک کپی شد')" title="کپی"><i class="ti ti-copy"></i></button>
         <button class="sub-card-url-copy" onclick="window.open('${esc(s.public_url)}','_blank')" title="باز کردن"><i class="ti ti-external-link"></i></button>
       </div>
       <div class="sub-card-bottom">
         <button class="btn btn-sm btn-g" onclick="openSubLinks('${esc(s.sub_id)}','${esc(s.name)}','${esc(s._nodeId||'')}')"><i class="ti ti-link-plus"></i> کانفیگ‌ها</button>
         ${isNode?`<button class="btn btn-sm btn-g btn-icon" onclick="openEditSubModal('${esc(s.sub_id)}','${esc(s._nodeId)}')" title="ویرایش"><i class="ti ti-edit"></i></button>`:''}
-        <button class="btn btn-sm btn-o" onclick="navigator.clipboard.writeText('${esc(s.sub_url)}').then(()=>toast('لینک ساب کپی شد','ok'))"><i class="ti ti-rss"></i> ساب</button>
+        <button class="btn btn-sm btn-o" onclick="copyToClipboard('${esc(s.sub_url)}', 'لینک ساب کپی شد')"><i class="ti ti-rss"></i> ساب</button>
         <button class="btn btn-sm btn-g btn-icon" onclick="showQR('${esc(s.sub_url)}')" title="QR"><i class="ti ti-qrcode"></i></button>
         <button class="btn btn-sm btn-d btn-icon" onclick="deleteSub('${esc(s.sub_id)}','${esc(s._nodeId||'')}')" title="حذف"><i class="ti ti-trash"></i></button>
       </div>
@@ -4481,8 +4539,8 @@ async function loadSubsPage(){
           <div style="font-size:10px;color:var(--t3);margin-top:3px">${toFa(s.links_count)} کانفیگ · ${esc(s.total_used_fmt)} مصرف ${s.has_password?'· 🔒 رمزدار':''}</div>
         </div>
         <div style="display:flex;gap:5px;flex-wrap:wrap">
-          <button class="btn btn-sm btn-pur" onclick="navigator.clipboard.writeText('${esc(s.sub_url)}').then(()=>toast('کپی شد','ok'))"><i class="ti ti-copy"></i> ساب</button>
-          <button class="btn btn-sm btn-pur" onclick="navigator.clipboard.writeText('${esc(s.public_url)}').then(()=>toast('کپی شد','ok'))"><i class="ti ti-globe"></i> پابلیک</button>
+          <button class="btn btn-sm btn-pur" onclick="copyToClipboard('${esc(s.sub_url)}', 'کپی شد')"><i class="ti ti-copy"></i> ساب</button>
+          <button class="btn btn-sm btn-pur" onclick="copyToClipboard('${esc(s.public_url)}', 'کپی شد')"><i class="ti ti-globe"></i> پابلیک</button>
           <button class="btn btn-sm btn-g" onclick="showQR('${esc(s.sub_url)}')"><i class="ti ti-qrcode"></i></button>
           <button class="btn btn-sm btn-d btn-icon" onclick="deleteSub('${esc(s.sub_id)}','${esc(s._nodeId||'')}')" title="حذف"><i class="ti ti-trash"></i></button>
         </div>
@@ -4490,7 +4548,7 @@ async function loadSubsPage(){
     `;}).join('');
   }catch(e){}
 }
-function cpSubAll(){navigator.clipboard.writeText(location.protocol+'//'+location.host+'/sub-all').then(()=>toast('کپی شد ✓','ok'))}
+function cpSubAll(){copyToClipboard(location.protocol+'//'+location.host+'/sub-all', 'کپی شد ✓')}
 function parseBytesFmt(s){
   if(!s)return 0;
   const m=String(s).match(/([\d.]+)\s*([A-Za-z]+)/);
@@ -4533,7 +4591,7 @@ async function loadConns(){
           <div class="conn-avatar"><i class="ti ti-device-desktop"></i></div>
           <div class="conn-card-v2-id">
             <div class="conn-ip-v2">${esc(c.ip)}
-              <button class="conn-ip-copy" onclick="navigator.clipboard.writeText('${esc(c.ip)}').then(()=>toast('IP کپی شد','ok'))" title="کپی IP"><i class="ti ti-copy"></i></button>
+              <button class="conn-ip-copy" onclick="copyToClipboard('${esc(c.ip)}', 'IP کپی شد')" title="کپی IP"><i class="ti ti-copy"></i></button>
             </div>
             <div class="conn-label-v2">${esc(c.label)}</div>
           </div>
@@ -4568,7 +4626,7 @@ async function loadErrs(){try{const r=await authF('/stats'),d=await r.json();ren
 async function fetchDefaultVless(){
   try{const r=await authF('/api/links'),d=await r.json();const links=d.links||[];const def=links.find(l=>l.limit_bytes===0&&l.active&&!l.expired)||links.find(l=>l.active&&!l.expired)||links[0];document.getElementById('vless-main').textContent=def?def.vless_link:'هنوز کانفیگی وجود ندارد';}catch(e){}
 }
-function cpText(id){navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>toast('کپی شد ✓','ok'))}
+function cpText(id){copyToClipboard(document.getElementById(id).textContent, 'کپی شد ✓')}
 function qrFor(id){showQR(document.getElementById(id).textContent)}
 function refreshAll(){fetchStats();fetchDefaultVless();loadLinks();loadSysRes();loadServerLocation();if(document.getElementById('pg-subgroups').classList.contains('on'))loadSubs();if(document.getElementById('pg-subscriptions').classList.contains('on'))loadSubsPage();if(document.getElementById('pg-connections').classList.contains('on'))loadConns();if(document.getElementById('pg-logs').classList.contains('on'))loadActivity();toast('رفرش شد','ok')}
 async function changePw(){
@@ -4784,18 +4842,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadAnnouncements();
   loadSysRes();
   loadServerLocation();
+  loadXcoreStatus();
 
-  setInterval(fetchStats, 2000);
-  setInterval(loadSysRes, 1500);
+  setInterval(() => { if (!document.hidden) fetchStats(); }, 5000);
+  setInterval(() => { if (!document.hidden) loadSysRes(); }, 4000);
+  setInterval(() => { if (!document.hidden) loadXcoreStatus(); }, 20000);
   setInterval(() => {
+    if (document.hidden) return;
     if (document.getElementById('pg-links').classList.contains('on')) loadLinks();
     if (document.getElementById('pg-subgroups').classList.contains('on')) loadSubs();
     if (document.getElementById('pg-subscriptions').classList.contains('on')) loadSubsPage();
     if (document.getElementById('pg-connections').classList.contains('on')) loadConns();
     if (document.getElementById('pg-logs').classList.contains('on')) loadActivity();
     loadVersion();
-  }, 5000);
-  setInterval(loadAnnouncements, 3000);
+  }, 8000);
+  setInterval(loadAnnouncements, 60000);
   setInterval(loadServerLocation, 300000);
 });
 
@@ -4927,7 +4988,7 @@ function zeusCardHtml(d){
   </div>`;
 }
 function zpCopyConfigStr(str){
-  navigator.clipboard.writeText(str).then(()=>toast('کانفیگ کپی شد ✓','ok')).catch(()=>{});
+  copyToClipboard(str, 'کانفیگ کپی شد ✓');
 }
 function refreshZeusCardOnly(d){
   const grid = document.getElementById('links-grid');
@@ -5120,7 +5181,7 @@ async function zpSaveConfig(){
 function zpCopyConfig(){
   const inp = document.getElementById('zp-done-config');
   inp.select();
-  navigator.clipboard.writeText(inp.value).then(()=>toast('کپی شد ✓','ok')).catch(()=>{});
+  copyToClipboard(inp.value, 'کپی شد ✓');
 }
 async function pollUpdate(){
   pollTicks++;
@@ -5340,7 +5401,7 @@ function renderNodeKeys(keys){
       <span class="node-key-dot"></span>
       <div class="node-key-body">
         <div class="node-key-label">${esc(k.label)} ${stateChip}${pwChip}</div>
-        <div class="node-key-val" onclick="navigator.clipboard.writeText('${esc(k.key)}').then(()=>toast('کپی شد ✓','ok'))" title="برای کپی کلیک کنید"><i class="ti ti-copy"></i>${esc(k.key)}</div>
+        <div class="node-key-val" onclick="copyToClipboard('${esc(k.key)}', 'کپی شد ✓')" title="برای کپی کلیک کنید"><i class="ti ti-copy"></i>${esc(k.key)}</div>
         <div class="node-key-state" title="دسترسی: ${esc(chips)}${meta?(' · '+esc(meta)):''}">${esc(chips)}${manageChip}${meta?(' · '+esc(meta)):''}</div>
       </div>
       <div class="node-key-actions">
@@ -5482,7 +5543,7 @@ function renderNodes(data){
           <div class="node-avatar ${n.online?'online':''}"><i class="ti ti-topology-star-3"></i><span class="node-avatar-dot"></span></div>
           <div class="node-titles">
             <div class="node-name">${esc(n.label)} ${statusChip}</div>
-            <div class="node-host" onclick="navigator.clipboard.writeText('${esc(n.host)}').then(()=>toast('کپی شد ✓','ok'))" title="برای کپی کلیک کنید"><i class="ti ti-server-2"></i>${esc(n.host)}</div>
+            <div class="node-host" onclick="copyToClipboard('${esc(n.host)}', 'کپی شد ✓')" title="برای کپی کلیک کنید"><i class="ti ti-server-2"></i>${esc(n.host)}</div>
             <div class="node-meta"><i class="ti ti-refresh"></i>${n.last_sync_at?('همگام‌سازی: '+esc(n.last_sync_at.slice(0,19).replace('T',' '))):'هنوز همگام نشده'}</div>
           </div>
         </div>
@@ -5950,7 +6011,7 @@ function renderContent(d){{
       <div class="sub-sub-box">
         <span class="sub-sub-url">${{esc(subUrl)}}</span>
         <button class="btn btn-pur" style="padding:7px 12px;font-size:10.5px"
-          onclick="navigator.clipboard.writeText(window._rvgSubUrl).then(()=>toast('لینک ساب کپی شد ✓','ok'))">
+          onclick="copyToClipboard(window._rvgSubUrl, 'لینک ساب کپی شد ✓')">
           <i class="ti ti-copy"></i> کپی لینک ساب
         </button>
         <button class="btn btn-g" style="padding:7px 12px;font-size:10.5px"
@@ -6033,7 +6094,7 @@ function renderContent(d){{
               </div>
               <div class="cfg-actions">
                 <button class="btn btn-p"
-                  onclick="navigator.clipboard.writeText(window._rvgLinks[${{i}}].vless).then(()=>toast('لینک کپی شد ✓','ok'))">
+                  onclick="copyToClipboard(window._rvgLinks[${{i}}].vless, 'لینک کپی شد ✓')">
                   <i class="ti ti-copy"></i> کپی لینک
                 </button>
                 <button class="btn btn-g"
@@ -6067,7 +6128,7 @@ function copyAllConfigs(){{
   const links=window._rvgLinks||[];
   if(!links.length){{toast('کانفیگی برای کپی نیست','');return}}
   const text=links.map(l=>l.vless).join('\\n');
-  navigator.clipboard.writeText(text).then(()=>toast('همه‌ی '+toFa(links.length)+' کانفیگ کپی شد ✓','ok'));
+  copyToClipboard(text, 'همه‌ی '+toFa(links.length)+' کانفیگ کپی شد ✓');
 }}
 
 async function autoRefresh(){{
