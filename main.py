@@ -358,6 +358,7 @@ async def startup():
     await load_state()
     await _restart_mtproto_instances()
     await _restore_reality_instances()
+    asyncio.create_task(_predownload_xcore_binary())
     log_activity("system", "سرور راه‌اندازی شد", "ok")
     logger.info(f"RVG Gateway v{get_current_version()} started on port {CONFIG['port']}")
     if not is_initialized():
@@ -365,6 +366,19 @@ async def startup():
             "Setup required — open http://<server-ip>:%d/setup to configure the panel",
             CONFIG["port"],
         )
+
+async def _predownload_xcore_binary():
+    """موقع بالا اومدن پنل، sing-box رو از قبل (پس‌زمینه) دانلود می‌کنه تا هم بج
+    وضعیتش توی داشبورد از همون اول درست باشه، هم اولین کانفیگ Reality/Hysteria2/
+    WireGuard/Shadowsocks-Native معطل دانلود نمونه. اگه لینکی از این نوع از قبل
+    وجود داشته باشه، restore_links بالاتر خودش این کارو کرده و این تابع سریع رد می‌شه."""
+    if xcore.BIN_PATH.exists():
+        return
+    try:
+        await xcore.ensure_binary()
+    except Exception as exc:
+        logger.warning(f"xcore: پیش‌دانلود sing-box ناموفق بود (در اولین ساخت کانفیگ دوباره تلاش می‌شه): {exc}")
+
 
 async def _restore_reality_instances():
     """بعد از بالا اومدن پنل، همه‌ی لینک‌هایی که روی sing-box (xcore) اجرا می‌شن
