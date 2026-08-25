@@ -1,7 +1,7 @@
 # appconfig.py
 # ══════════════════════════════════════════════════════════════════════════════
 # Shared runtime paths & defaults for the self-hosted Linux edition.
-# Every module (main, updater, bottokentcpproxy, mtproto_native) imports from
+# Every module (main, updater, mtproto_native) imports from
 # here so DATA_DIR / APP_DIR / port defaults stay consistent across the app.
 #
 # Resolution order for DATA_DIR:

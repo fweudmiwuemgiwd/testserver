@@ -257,6 +257,26 @@ def _port_free(port: int) -> bool:
             return False
 
 
+_used_control_ports: set[int] = set()
+CONTROL_PORT_RANGE_START = int(os.environ.get("MTP_CONTROL_PORT_START", 23980))
+CONTROL_PORT_RANGE_END = int(os.environ.get("MTP_CONTROL_PORT_END", 24080))
+
+
+def _allocate_control_port() -> int:
+    """🔴 باگ حیاتی که اینجا بود: پورت کنترل داخلی (-p / --http-stats) برای
+    همه‌ی instance ها هاردکد به 2398 بود. دو پروسه نمی‌تونن هم‌زمان یه پورت
+    TCP رو bind کنن، پس با بیش از یک لینک MTProto فعال، پروسه‌ی دوم/سوم/...
+    سر همین بایند شکست می‌خورد و اصلاً بالا نمی‌اومد (یا رفتار نامعین داشت).
+    یعنی عملاً همیشه فقط یک پروکسی تلگرام واقعاً کار می‌کرد. حالا هر instance
+    پورت کنترل مجزای خودش رو از یک بازه‌ی جدا می‌گیره."""
+    for port in range(CONTROL_PORT_RANGE_START, CONTROL_PORT_RANGE_END):
+        if port in _used_control_ports:
+            continue
+        if _port_free(port):
+            return port
+    raise RuntimeError("پورت کنترل داخلی آزادی برای MTProto باقی نمانده")
+
+
 async def allocate_port_async(preferred: int | None = None, force: bool = False, uuid: str = "") -> int | None:
     tag = uuid[:8] if uuid else "?"
     if preferred is not None:
@@ -326,16 +346,17 @@ def generate_mtproto_web_link(host: str, port: int, secret: str,
 
 
 async def get_stats(uuid: str) -> dict:
-    """آمار واقعی از خود باینری (--http-stats روی 127.0.0.1:2398).
+    """آمار واقعی از خود باینری (--http-stats روی 127.0.0.1:<control_port>).
     مهم‌ترین فیلد: total_special_connections = تعداد اتصال‌های ورودی کلاینت.
     اگه این صفر بمونه یعنی واقعاً هیچ پکتی نمی‌رسه؛ اگه بالا بره یعنی پکت
     می‌رسه و مشکل جای دیگه‌ست (مثلاً handshake/سکرت)."""
     inst = _instances.get(uuid)
     if not inst or inst["proc"].returncode is not None:
         return {"error": "instance اجرا نیست"}
+    control_port = inst.get("control_port", 2398)
     try:
         async with httpx.AsyncClient(timeout=4.0) as client:
-            r = await client.get("http://127.0.0.1:2398/stats")
+            r = await client.get(f"http://127.0.0.1:{control_port}/stats")
             raw = r.text
     except Exception as exc:
         return {"error": f"دریافت stats ناموفق: {exc}"}
@@ -431,17 +452,18 @@ async def start_instance(
 
         internal_ip, external_ip = await _detect_ips()
         aes_pwd = await _ensure_aes_pwd_file()
+        control_port = _allocate_control_port()
 
         cmd_base = [
             str(BIN_PATH),
-            "-p", "2398",           # پورت کنترل داخلی (هرچی، فقط باید آزاد باشه per-process)
+            "-p", str(control_port),  # پورت کنترل داخلی — مجزا برای هر instance (رجوع به _allocate_control_port)
             "-H", str(port),        # پورت واقعی MTProto که کلاینت بهش وصل می‌شه
             "-C", str(MAX_CONN),
             "--aes-pwd", str(aes_pwd),
             "-u", "root",
             str(BACKEND_CONF),
             "--allow-skip-dh",
-            "--http-stats",         # /stats روی 127.0.0.1:2398 — تنها راه قطعی برای
+            "--http-stats",         # /stats روی 127.0.0.1:<control_port> — تنها راه قطعی برای
                                     # دیدن این‌که واقعاً چند اتصال ورودی رسیده
             "--nat-info", f"{internal_ip}:{external_ip}",
         ]
@@ -512,9 +534,10 @@ async def start_instance(
             raise RuntimeError("mtproto-proxy در هیچ‌کدام از حالت‌های IPv6/IPv4 بالا نیامد")
 
         _used_ports.add(port)
+        _used_control_ports.add(control_port)
         inst = {
             "proc": proc, "port": port, "secret": secret, "domain": domain,
-            "ad_tag": ad_tag, "external_ip": external_ip,
+            "ad_tag": ad_tag, "external_ip": external_ip, "control_port": control_port,
             "logs": [], "started_at": time.time(), "used_bytes_reported": 0,
         }
         _instances[uuid] = inst
@@ -535,6 +558,7 @@ async def _watch_process(uuid: str, proc: asyncio.subprocess.Process):
         cur = _instances.get(uuid)
         if cur and cur["proc"] is proc:
             _used_ports.discard(cur["port"])
+            _used_control_ports.discard(cur.get("control_port"))
             t = cur.get("log_task")
             if t:
                 t.cancel()
@@ -557,6 +581,7 @@ async def stop_instance(uuid: str):
     if not inst:
         return
     _used_ports.discard(inst["port"])
+    _used_control_ports.discard(inst.get("control_port"))
     t = inst.get("log_task")
     if t:
         t.cancel()

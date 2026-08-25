@@ -9,8 +9,6 @@ import time
 from collections import defaultdict
 from typing import Optional
 
-import bottokentcpproxy
-
 logger = logging.getLogger("RVG-Gateway")
 
 IDLE_TIMEOUT = 300  # ثانیه؛ اگه هر دو طرف ساکت بود می‌بندیمش
@@ -233,18 +231,12 @@ async def _ensure_local_server() -> int:
 
 
 async def create_zeus_proxy(
-    token: Optional[str] = None,
     traffic_limit_gb: Optional[float] = None,
     expires_days: Optional[int] = None,
     max_connections_per_ip: Optional[int] = None,
 ) -> dict:
     """ساخت پروکسی Zeus با کانفیگ‌های حجم، انقضا و محدودیت اتصال per IP.
-    روی سرور self-hosted (بدون توکن Railway) پورت SOCKS مستقیماً روی سرور
-    باز می‌شود؛ اگر توکن Railway ذخیره شده باشد مسیر TCP Proxy ریلوی استفاده می‌شود."""
-    token = (token or "").strip()
-    if token:
-        bottokentcpproxy.save_token(token)
-
+    پورت SOCKS مستقیماً روی سرور باز می‌شود (باید در فایروال باز باشد)."""
     # ── اعمال کانفیگ‌ها ──
     cfg = zeus_proxy_state["config"]
     if traffic_limit_gb is not None:
@@ -261,16 +253,10 @@ async def create_zeus_proxy(
 
     try:
         local_port = await _ensure_local_server()
-        use_railway = bottokentcpproxy.has_saved_token()
         proxy_id = None
-        if use_railway:
-            pub = await bottokentcpproxy.create_public_proxy_for_port(local_port)
-            pub_domain, pub_port = pub["domain"], pub["port"]
-            proxy_id = pub["id"]
-        else:
-            # حالت self-hosted: اتصال مستقیم به پورت محلی (باید در فایروال باز باشد)
-            from main import get_host
-            pub_domain, pub_port = get_host(), local_port
+        # اتصال مستقیم به پورت محلی (باید در فایروال باز باشد)
+        from main import get_host
+        pub_domain, pub_port = get_host(), local_port
         config_str = f"{_creds['user']}:{_creds['password']}@{pub_domain}:{pub_port}"
         result = {
             "user": _creds["user"],
@@ -295,12 +281,6 @@ async def create_zeus_proxy(
 async def delete_zeus_proxy():
     """TCP Proxy عمومی رو حذف و سرور SOCKS5 محلی رو می‌بندد."""
     global _server
-    result = zeus_proxy_state.get("result")
-    if result and result.get("proxy_id"):
-        try:
-            await bottokentcpproxy.delete_public_proxy(result["proxy_id"])
-        except Exception as e:
-            logger.warning(f"ZeusSocks5: خطا در حذف TCP Proxy: {e}")
     if _server is not None:
         _server.close()
         await _server.wait_closed()
@@ -343,7 +323,6 @@ def get_zeus_status() -> dict:
         extra["is_traffic_exceeded"] = _is_traffic_exceeded()
     return {
         **zeus_proxy_state,
-        "has_token": bottokentcpproxy.has_saved_token(),
         **extra,
     }
 

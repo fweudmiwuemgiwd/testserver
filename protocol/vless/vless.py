@@ -144,6 +144,148 @@ async def parse_vless_header(chunk: bytes):
         raise ValueError(f"unknown addr type: {addr_type}")
     return command, address, port, chunk[pos:]
 
+# ══════════════════════════════════════════════════════════════════════════════
+# UDP relay (VLESS command==2) — عمدتاً برای DNS-over-UDP و بازی/صدا روی UDP.
+# فریم‌بندی طبق اسپک VLESS: هر بسته با یک length-prefix دو بایتی (big-endian)
+# جلوتر از دیتای خودش می‌آید، هم در جهت رفت (client→server) هم برگشت.
+# ══════════════════════════════════════════════════════════════════════════════
+
+UDP_IDLE_TIMEOUT = 60.0     # ثانیه؛ بدون بسته‌ی جدید، سوکت UDP بسته می‌شود
+UDP_MAX_PACKET = 64 * 1024  # حداکثر اندازه‌ی یک دیتاگرام UDP
+
+
+def _extract_udp_frames(buf: bytearray):
+    """بافر رو بر اساس length-prefixهای ۲بایتی frame می‌کنه؛ فریم‌های کامل رو
+    برمی‌گردونه و باقیمانده‌ی ناقص رو توی buf نگه می‌داره (برای پیام بعدی)."""
+    frames = []
+    i = 0
+    n = len(buf)
+    while i + 2 <= n:
+        ln = int.from_bytes(buf[i:i+2], "big")
+        if i + 2 + ln > n:
+            break
+        frames.append(bytes(buf[i+2:i+2+ln]))
+        i += 2 + ln
+    del buf[:i]
+    return frames
+
+
+class _VlessUdpProtocol(asyncio.DatagramProtocol):
+    """پروتکل UDP یک‌طرفه: هر بسته‌ی برگشتی از مقصد رو با length-prefix روی
+    صف می‌ذاره تا لوپ relay اونا رو به سمت WebSocket بفرسته."""
+
+    def __init__(self, on_packet):
+        self.on_packet = on_packet
+        self.transport = None
+
+    def connection_made(self, transport):
+        self.transport = transport
+
+    def datagram_received(self, data, addr):
+        if len(data) > UDP_MAX_PACKET:
+            data = data[:UDP_MAX_PACKET]
+        self.on_packet(data)
+
+    def error_received(self, exc):
+        pass
+
+
+async def relay_vless_udp(ws: WebSocket, conn_id: str, uid: str, address: str, port: int, first_payload: bytes):
+    """VLESS UDP: یک سوکت UDP به مقصد باز می‌کنه، بسته‌های اولیه (از هدر) رو
+    می‌فرسته و بعد دوطرفه relay می‌کنه تا وقتی کلاینت قطع بشه یا idle timeout بخوره."""
+    loop = asyncio.get_event_loop()
+    gate = _QuotaGate(uid)
+    conn = connections.get(conn_id)
+    out_queue: asyncio.Queue = asyncio.Queue()
+
+    def _on_packet(data: bytes):
+        try:
+            out_queue.put_nowait(data)
+        except asyncio.QueueFull:
+            pass
+
+    try:
+        transport, _proto = await loop.create_datagram_endpoint(
+            lambda: _VlessUdpProtocol(_on_packet),
+            remote_addr=(address, port),
+        )
+    except Exception as exc:
+        logger.warning(f"VLESS UDP: اتصال به {address}:{port} ناموفق بود: {exc}")
+        try:
+            await ws.close(code=1011, reason="udp connect failed")
+        except Exception:
+            pass
+        return
+
+    inbuf = bytearray(first_payload)
+    last_activity = time.monotonic()
+
+    async def _pump_client_to_udp():
+        nonlocal last_activity
+        try:
+            while True:
+                for frame in _extract_udp_frames(inbuf):
+                    if not await gate.add(len(frame)):
+                        return
+                    transport.sendto(frame)
+                    last_activity = time.monotonic()
+                msg = await asyncio.wait_for(ws.receive(), timeout=UDP_IDLE_TIMEOUT)
+                if msg["type"] == "websocket.disconnect":
+                    return
+                data = msg.get("bytes") or (msg.get("text") or "").encode()
+                if data:
+                    inbuf.extend(data)
+        except (WebSocketDisconnect, asyncio.TimeoutError):
+            return
+        except Exception:
+            return
+
+    async def _pump_udp_to_client():
+        nonlocal last_activity
+        try:
+            while True:
+                try:
+                    data = await asyncio.wait_for(out_queue.get(), timeout=UDP_IDLE_TIMEOUT)
+                except asyncio.TimeoutError:
+                    return
+                if not await gate.add(len(data)):
+                    return
+                if conn is not None:
+                    conn["bytes"] += len(data)
+                framed = len(data).to_bytes(2, "big") + data
+                await ws.send_bytes(framed)
+                last_activity = time.monotonic()
+        except Exception:
+            return
+
+    # اولین بسته‌های ضمیمه‌ی هدر (اگه با درخواست اول اومده باشن) رو هم بفرست
+    for frame in _extract_udp_frames(inbuf):
+        try:
+            transport.sendto(frame)
+        except Exception:
+            break
+
+    try:
+        done, pending = await asyncio.wait(
+            {
+                asyncio.create_task(_pump_client_to_udp()),
+                asyncio.create_task(_pump_udp_to_client()),
+            },
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+        for t in pending:
+            t.cancel()
+            try:
+                await t
+            except asyncio.CancelledError:
+                pass
+    finally:
+        await gate.flush()
+        try:
+            transport.close()
+        except Exception:
+            pass
+
 async def check_and_use(uid: str, n: int) -> bool:
     async with LINKS_LOCK:
         link = LINKS.get(uid)

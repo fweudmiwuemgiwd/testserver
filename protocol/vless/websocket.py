@@ -28,6 +28,7 @@ from protocol.vless.vless import (
     check_and_use,
     relay_ws_to_tcp,
     relay_tcp_to_ws,
+    relay_vless_udp,
 )
 
 
@@ -71,7 +72,14 @@ async def websocket_tunnel(ws: WebSocket, uuid: str):
 
         stats["total_requests"] += 1
         connections[conn_id]["bytes"] += len(first_chunk)
-        logger.info(f"➡️  [{conn_id}] → {address}:{port}")
+        logger.info(f"➡️  [{conn_id}] → {address}:{port} (cmd={command})")
+
+        # command==2 یعنی UDP (طبق اسپک VLESS) — مسیر جدا از TCP relay
+        if command == 2:
+            connections[conn_id]["transport"] = "vless-ws-udp"
+            await relay_vless_udp(ws, conn_id, uuid, address, port, payload)
+            asyncio.create_task(save_state())
+            return
 
         reader, writer = await asyncio.wait_for(
             asyncio.open_connection(address, port),

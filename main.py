@@ -27,6 +27,7 @@ def _install_packages():
 # _install_packages()  # deps preinstalled for local test
 
 import asyncio
+import socket
 import json
 import os
 import hashlib
@@ -41,13 +42,11 @@ from zoneinfo import ZoneInfo
 from urllib.parse import quote
 from collections import deque, defaultdict
 from pathlib import Path
-import bottokentcpproxy
 from protocol.mtproto import mtproto_native as mtproto
 from typing import Optional
 import base64
-import botgeneratedomin
-import bottokentcpproxy
 import zeussocks5
+from protocol.vless import xcore
 from protocol.mtproto import mtproto_native as mtproto
 from fastapi import FastAPI, Request, HTTPException, WebSocket, WebSocketDisconnect, Depends
 from fastapi.responses import Response, HTMLResponse, JSONResponse, RedirectResponse
@@ -285,7 +284,8 @@ NODE_SHARE_PARTS = ("usage", "links", "subs", "requests", "logs")
 PROTOCOLS = (
     "vless-ws", "xhttp-packet-up", "xhttp-stream-up",
     "trojan-ws", "trojan-xhttp-packet-up", "trojan-xhttp-stream-up",
-    "mtproto", "shadowsocks",
+    "mtproto", "shadowsocks", "vless-reality", "trojan-reality",
+    "shadowsocks-xray", "hysteria2", "wireguard",
 )
 DEFAULT_PROTOCOL = "vless-ws"
 
@@ -357,6 +357,7 @@ async def startup():
     )
     await load_state()
     await _restart_mtproto_instances()
+    await _restore_reality_instances()
     log_activity("system", "سرور راه‌اندازی شد", "ok")
     logger.info(f"RVG Gateway v{get_current_version()} started on port {CONFIG['port']}")
     if not is_initialized():
@@ -364,6 +365,64 @@ async def startup():
             "Setup required — open http://<server-ip>:%d/setup to configure the panel",
             CONFIG["port"],
         )
+
+async def _restore_reality_instances():
+    """بعد از بالا اومدن پنل، همه‌ی لینک‌هایی که روی sing-box (xcore) اجرا می‌شن
+    (vless-reality, trojan-reality, shadowsocks-xray, hysteria2, wireguard) رو
+    با همون کلید/پسورد قبلی برمی‌گردونه — کلیدها هرگز عوض نمی‌شن، وگرنه
+    لینک‌های قبلاً پخش‌شده باطل می‌شدن."""
+    XCORE_PROTOCOLS = {"vless-reality", "trojan-reality", "shadowsocks-xray", "hysteria2", "wireguard"}
+    async with LINKS_LOCK:
+        targets = {
+            uid: d for uid, d in LINKS.items()
+            if d.get("protocol") in XCORE_PROTOCOLS and d.get("active", True) and d.get("xcore_port")
+        }
+    saved = {}
+    for uid, d in targets.items():
+        proto = d["protocol"]
+        if proto == "vless-reality":
+            if not d.get("reality_private_key"):
+                continue
+            saved[uid] = {
+                "kind": "vless-reality", "uuid": uid, "port": d["xcore_port"],
+                "server_names": [d.get("reality_server_name")], "dest_port": d.get("reality_dest_port", 443),
+                "private_key": d["reality_private_key"], "short_ids": [d.get("reality_short_id", "")],
+                "flow": d.get("reality_flow", "xtls-rprx-vision"),
+            }
+        elif proto == "trojan-reality":
+            if not d.get("reality_private_key"):
+                continue
+            saved[uid] = {
+                "kind": "trojan-reality", "port": d["xcore_port"],
+                "server_names": [d.get("reality_server_name")], "dest_port": d.get("reality_dest_port", 443),
+                "private_key": d["reality_private_key"], "short_ids": [d.get("reality_short_id", "")],
+                "password": d.get("trojan_password", ""),
+            }
+        elif proto == "shadowsocks-xray":
+            saved[uid] = {
+                "kind": "shadowsocks-xray", "port": d["xcore_port"],
+                "method": d.get("ss_cipher", "chacha20-ietf-poly1305"), "password": d.get("ss_password", ""),
+            }
+        elif proto == "hysteria2":
+            saved[uid] = {"kind": "hysteria2", "port": d["xcore_port"], "password": d.get("hy2_password", "")}
+        elif proto == "wireguard":
+            saved[uid] = {
+                "kind": "wireguard", "port": d["xcore_port"],
+                "server_private_key": d.get("wg_server_private_key"),
+                "server_public_key": d.get("wg_server_public_key"),
+                "server_ip_cidr": d.get("wg_server_ip_cidr", "10.90.90.1/24"),
+                "client_private_key": d.get("wg_client_private_key"),
+                "client_public_key": d.get("wg_client_public_key"),
+                "client_ip_cidr": d.get("wg_client_ip_cidr"),
+            }
+    if saved:
+        try:
+            await xcore.restore_links(saved)
+            logger.info(f"xcore: {len(saved)} لینک بازیابی شد")
+        except Exception as exc:
+            logger.error(f"xcore: بازیابی لینک‌ها ناموفق بود: {exc}")
+
+
 
 async def _restart_mtproto_instances():
     """بعد از بالا اومدن پنل، به‌ازای هر لینک MTProto فعال یک پروسه‌ی جدای
@@ -373,15 +432,14 @@ async def _restart_mtproto_instances():
             (uid, d) for uid, d in LINKS.items()
             if d.get("protocol") == "mtproto" and d.get("active", True)
         ]
-    if not bottokentcpproxy.has_saved_token():
-        # حالت self-hosted: پورت هر instance مستقیماً روی سرور باز می‌شود و
-        # نیازی به TCP Proxy ریلوی نیست — فقط باید پورت در فایروال باز باشد.
-        missing_public = [uid for uid, d in targets if not d.get("mtproto_public_host")]
-        if missing_public:
-            logger.info(
-                f"MTProto: {len(missing_public)} لینک بدون آدرس عمومی — پورت داخلی مستقیم استفاده می‌شود؛ "
-                f"پورت‌های مرتبط را در فایروال باز کنید."
-            )
+    # self-hosted: پورت هر instance مستقیماً روی سرور باز می‌شود — فقط باید
+    # پورت در فایروال باز باشد (rvg firewall).
+    missing_public = [uid for uid, d in targets if not d.get("mtproto_public_host")]
+    if missing_public:
+        logger.info(
+            f"MTProto: {len(missing_public)} لینک بدون آدرس عمومی — پورت داخلی مستقیم استفاده می‌شود؛ "
+            f"پورت‌های مرتبط را در فایروال باز کنید."
+        )
     for uid, d in targets:
         try:
             inst = await mtproto.start_instance(
@@ -402,17 +460,13 @@ async def _restart_mtproto_instances():
                 LINKS[uid]["mtproto_port"] = inst["port"]
                 LINKS[uid]["mtproto_secret"] = inst["secret"]
 
-        if (d.get("mtproto_proxy_id") and inst["port"] != old_port
-                and not d.get("mtproto_manual_port", False)):
-            asyncio.create_task(_reattach_mtproto_public_proxy(
-                uid, inst["port"], d.get("mtproto_proxy_id"), d.get("label", "")
-            ))
-        elif not d.get("mtproto_proxy_id") and bottokentcpproxy.has_saved_token():
-            # لینکی که هنوز هیچ TCP Proxy عمومی نداره (مثلاً چون با نسخه‌ی قدیمی
-            # ساخته شده) — بدون این، لینکش مرده می‌مونه.
-            asyncio.create_task(_attach_mtproto_public_proxy(
-                uid, inst["port"], d.get("label", "")
-            ))
+        if inst["port"] != old_port and not d.get("mtproto_manual_port", False):
+            # self-hosted: آدرس عمومی همیشه host:port خودِ instance است.
+            async with LINKS_LOCK:
+                if uid in LINKS:
+                    LINKS[uid]["mtproto_public_host"] = get_host()
+                    LINKS[uid]["mtproto_public_port"] = inst["port"]
+                    LINKS[uid]["mtproto_public_pending"] = False
 
 
 async def _mtproto_usage_callback(uuid: str, n_bytes: int) -> bool:
@@ -428,32 +482,6 @@ async def _mtproto_usage_callback(uuid: str, n_bytes: int) -> bool:
     return True
 
 mtproto.set_usage_callback(_mtproto_usage_callback)
-
-
-async def _attach_mtproto_public_proxy(uid: str, application_port: int, label: str):
-    """TCP Proxy عمومی روی Railway برای پورت این instance خاص می‌سازه (هر لینک
-    پورت جدای خودش رو داره، پس هرکدوم TCP Proxy جدای خودش رو لازم داره)."""
-    try:
-        pub = await bottokentcpproxy.create_public_proxy_for_port(application_port)
-    except Exception as exc:
-        logger.warning(f"TCP Proxy عمومی برای {uid[:8]} ناموفق بود: {exc}")
-        log_activity("link", f"ساخت TCP Proxy عمومی برای «{label}» ناموفق بود: {exc}", "err")
-        return
-    async with LINKS_LOCK:
-        if uid in LINKS:
-            LINKS[uid]["mtproto_public_host"] = pub["domain"]
-            LINKS[uid]["mtproto_public_port"] = pub["port"]
-            LINKS[uid]["mtproto_proxy_id"] = pub["id"]
-            LINKS[uid]["mtproto_public_pending"] = False
-    asyncio.create_task(save_state())
-    log_activity("link", f"TCP Proxy عمومی «{label}» آماده شد ({pub['domain']}:{pub['port']})", "ok")
-
-
-
-async def _reattach_mtproto_public_proxy(uid: str, new_port: int, old_proxy_id: Optional[str], label: str):
-    if old_proxy_id:
-        await bottokentcpproxy.delete_public_proxy(old_proxy_id)
-    await _attach_mtproto_public_proxy(uid, new_port, label)
 
 
 async def _update_mtproto_ad_tag(uuid: str, ad_tag: str):
@@ -579,6 +607,65 @@ def generate_share_link(uuid: str, host: str, remark: str = "RVG", protocol: str
         cipher = link.get("ss_cipher", DEFAULT_CIPHER)
         password = link.get("ss_password", "")
         return generate_ss_link(host, pub_port, cipher, password, remark)
+
+    if protocol == "vless-reality":
+        r_port = link.get("xcore_port")
+        pbk = link.get("reality_public_key")
+        sid = link.get("reality_short_id", "")
+        sni = link.get("reality_server_name", "")
+        flow = link.get("reality_flow", "xtls-rprx-vision")
+        if not r_port or not pbk:
+            return f"vless://not_ready#{quote(remark)}"
+        params = {
+            "encryption": "none", "security": "reality", "type": "tcp",
+            "sni": sni, "fp": "chrome", "pbk": pbk, "sid": sid, "flow": flow,
+        }
+        query = "&".join(f"{k}={quote(str(v))}" for k, v in params.items())
+        return f"vless://{uuid}@{host}:{r_port}?{query}#{quote(remark)}"
+
+    if protocol == "trojan-reality":
+        r_port = link.get("xcore_port")
+        pbk = link.get("reality_public_key")
+        sid = link.get("reality_short_id", "")
+        sni = link.get("reality_server_name", "")
+        password = link.get("trojan_password", "")
+        if not r_port or not pbk:
+            return f"trojan://not_ready#{quote(remark)}"
+        params = {
+            "security": "reality", "type": "tcp",
+            "sni": sni, "fp": "chrome", "pbk": pbk, "sid": sid,
+        }
+        query = "&".join(f"{k}={quote(str(v))}" for k, v in params.items())
+        return f"trojan://{password}@{host}:{r_port}?{query}#{quote(remark)}"
+
+    if protocol == "shadowsocks-xray":
+        x_port = link.get("xcore_port")
+        cipher = link.get("ss_cipher", DEFAULT_CIPHER)
+        password = link.get("ss_password", "")
+        if not x_port:
+            return f"ss://not_ready#{quote(remark)}"
+        return generate_ss_link(host, x_port, cipher, password, remark)
+
+    if protocol == "hysteria2":
+        x_port = link.get("xcore_port")
+        password = link.get("hy2_password", "")
+        if not x_port:
+            return f"hy2://not_ready#{quote(remark)}"
+        return f"hy2://{password}@{host}:{x_port}?insecure=1&sni={quote(host)}#{quote(remark)}"
+
+    if protocol == "wireguard":
+        x_port = link.get("xcore_port")
+        if not x_port:
+            return f"wireguard://not_ready#{quote(remark)}"
+        client_priv = link.get("wg_client_private_key", "")
+        server_pub = link.get("wg_server_public_key", "")
+        client_ip = (link.get("wg_client_ip_cidr") or "").split("/")[0]
+        params = {
+            "publickey": server_pub, "address": f"{client_ip}/24",
+            "reserved": "0,0,0", "mtu": "1408",
+        }
+        query = "&".join(f"{k}={quote(str(v))}" for k, v in params.items())
+        return f"wireguard://{quote(client_priv)}@{host}:{x_port}?{query}#{quote(remark)}"
 
     if protocol == "trojan-ws":
         params = {
@@ -1339,85 +1426,6 @@ async def get_stats(_=Depends(require_auth)):
         "subs_count": len(SUBS),
     }
 
-@app.get("/api/bot-tcp-proxy/domains")
-async def api_bot_tcp_proxy_domains(_=Depends(require_auth)):
-    return {"domains": bottokentcpproxy.get_known_domains()}
-
-@app.post("/api/bot-tcp-proxy/start")
-async def api_bot_tcp_proxy_start(request: Request, _=Depends(require_auth)):
-    body = await request.json()
-    token = str(body.get("token", "")).strip()
-    # هر لینک MTProto پورت جدای خودش رو داره (per-instance)، پس پورت باید
-    # از ورودی کاربر/فرانت (لینکی که TCP Proxy براش ساخته می‌شه) بیاد.
-    uid = str(body.get("uuid") or "").strip()
-    port = body.get("port")
-    if port is None and uid:
-        async with LINKS_LOCK:
-            link = LINKS.get(uid)
-            port = link.get("mtproto_port") if link else None
-    if port is None:
-        raise HTTPException(status_code=400, detail="پورت (یا uuid لینک) مشخص نشده")
-    port = int(port)
-    reachable_domains = body.get("reachable_domains") or []
-    try:
-        bottokentcpproxy.start_job(token, port, reachable_domains=reachable_domains)
-    except RuntimeError as exc:
-        raise HTTPException(status_code=409, detail=str(exc))
-    log_activity("system", "جست‌وجوی TCP Proxy آغاز شد", "info")
-    return {"ok": True}
-
-@app.post("/api/mtproto/fix-proxy")
-async def api_mtproto_fix_proxy(request: Request, _=Depends(require_auth)):
-    """راه مستقیم برای درست‌کردن لینک‌های MTProto بدون TCP Proxy:
-    توکن Railway رو (اگه فرستاده بشه) ذخیره می‌کنه و بعد برای همه‌ی لینک‌های
-    MTProto که هنوز TCP Proxy عمومی ندارن، یکی می‌سازه — بدون نیاز به طی‌کردن
-    کل فرآیند جست‌وجوی دامنه."""
-    body = {}
-    try:
-        body = await request.json()
-    except Exception:
-        pass
-    token = str(body.get("token", "")).strip()
-    if token:
-        bottokentcpproxy.save_token(token)
-
-    if not bottokentcpproxy.has_saved_token():
-        raise HTTPException(status_code=400, detail="توکن Railway ذخیره نشده — آن را در همین درخواست بفرستید")
-
-    async with LINKS_LOCK:
-        targets = [
-            (uid, d.get("mtproto_port"), d.get("label", ""))
-            for uid, d in LINKS.items()
-            if d.get("protocol") == "mtproto" and not d.get("mtproto_public_host")
-        ]
-
-    fixed, failed = [], []
-    for uid, port, label in targets:
-        if not port:
-            failed.append({"uuid": uid, "label": label, "error": "پورت داخلی ندارد (instance اجرا نشده)"})
-            continue
-        try:
-            pub = await bottokentcpproxy.create_public_proxy_for_port(int(port))
-        except Exception as exc:
-            failed.append({"uuid": uid, "label": label, "error": str(exc)})
-            continue
-        async with LINKS_LOCK:
-            if uid in LINKS:
-                LINKS[uid]["mtproto_public_host"] = pub["domain"]
-                LINKS[uid]["mtproto_public_port"] = pub["port"]
-                LINKS[uid]["mtproto_proxy_id"] = pub["id"]
-                LINKS[uid]["mtproto_public_pending"] = False
-        fixed.append({
-            "uuid": uid, "label": label,
-            "host": pub["domain"], "port": pub["port"],
-            "link": generate_share_link(uid, get_host(), remark=f"RVG-{label}", protocol="mtproto"),
-        })
-        log_activity("link", f"TCP Proxy عمومی «{label}» ساخته شد ({pub['domain']}:{pub['port']})", "ok")
-
-    asyncio.create_task(save_state())
-    return {"ok": True, "fixed": fixed, "failed": failed}
-
-
 @app.get("/api/mtproto/{uid}/stats")
 async def api_mtproto_stats(uid: str, _=Depends(require_auth)):
     """آمار خام خود باینری mtproto-proxy برای این لینک.
@@ -1438,14 +1446,12 @@ async def api_zeus_proxy_create(request: Request, _=Depends(require_auth)):
         body = await request.json()
     except Exception:
         pass
-    token = str(body.get("token", "")).strip()
     # ── کانفیگ‌های اختیاری ──
     traffic_limit_gb = body.get("traffic_limit_gb")
     expires_days = body.get("expires_days")
     max_connections_per_ip = body.get("max_connections_per_ip")
     try:
         result = await zeussocks5.create_zeus_proxy(
-            token or None,
             traffic_limit_gb=float(traffic_limit_gb) if traffic_limit_gb is not None else None,
             expires_days=int(expires_days) if expires_days is not None else None,
             max_connections_per_ip=int(max_connections_per_ip) if max_connections_per_ip is not None else None,
@@ -1485,120 +1491,6 @@ async def api_zeus_proxy_config(request: Request, _=Depends(require_auth)):
     )
     log_activity("system", f"کانفیگ پروکسی Zeus آپدیت شد", "ok")
     return {"ok": True, "config": cfg}
-@app.post("/api/bot-tcp-proxy/stop")
-async def api_bot_tcp_proxy_stop(_=Depends(require_auth)):
-    stopped = bottokentcpproxy.stop_job()
-    if stopped:
-        log_activity("system", "جست‌وجوی TCP Proxy متوقف شد", "warn")
-    return {"ok": True, "stopped": stopped}
-
-@app.get("/api/bot-tcp-proxy/status")
-async def api_bot_tcp_proxy_status(_=Depends(require_auth)):
-    return bottokentcpproxy.get_status()
-
-@app.post("/api/bot-tcp-proxy/attach")
-async def api_bot_tcp_proxy_attach(request: Request, _=Depends(require_auth)):
-    """وقتی جست‌وجو یک دامنه‌ی سالم پیدا کرد (phase=='done')، این دامنه/پورت به‌عنوان
-    TCP Proxy عمومیِ همون لینک MTProto مشخص‌شده (با uuid) ثبت می‌شود. اگر uuid
-    داده نشده باشه و هیچ لینک MTProtoای وجود نداشته باشه، یکی پیش‌فرض ساخته می‌شود."""
-    status = bottokentcpproxy.get_status()
-    chosen = status.get("result")
-    if status.get("phase") != "done" or not chosen:
-        raise HTTPException(status_code=409, detail="هنوز نتیجه‌ای برای ساخت پروکسی آماده نیست")
-
-    body = {}
-    try:
-        body = await request.json()
-    except Exception:
-        pass
-    label = str(body.get("label") or "").strip() or f"TCP-{chosen['domain'].split('.')[0]}"
-    uid = str(body.get("uuid") or "").strip() or None
-
-    attached_link = None
-    if not uid:
-        async with LINKS_LOCK:
-            existing = next((u for u, d in LINKS.items() if d.get("protocol") == "mtproto"), None)
-        uid = existing
-
-    if not uid:
-        uid = generate_uuid()
-        secret = mtproto.generate_secret()
-        link_data = {
-            "label": label, "limit_bytes": 0, "used_bytes": 0,
-            "created_at": datetime.now().isoformat(),
-            "alpn": "h2,http/1.1", "fingerprint": "chrome", "active": True,
-            "expires_at": None, "note": "", "is_default": False, "sub_id": None,
-            "protocol": "mtproto", "ad_tag": None, "mtproto_secret": secret,
-        }
-        async with LINKS_LOCK:
-            LINKS[uid] = link_data
-        try:
-            inst = await mtproto.start_instance(uid, secret=secret, ad_tag=None)
-        except Exception as exc:
-            logger.error(f"راه‌اندازی mtproto ناموفق بود: {exc}")
-            raise HTTPException(status_code=502, detail=f"راه‌اندازی MTProto ناموفق بود: {exc}")
-        async with LINKS_LOCK:
-            LINKS[uid]["mtproto_port"] = inst["port"]
-            LINKS[uid]["mtproto_secret"] = inst["secret"]
-        attached_link = {"uuid": uid, "label": label}
-
-    old_proxy_id = None
-    async with LINKS_LOCK:
-        link = LINKS.get(uid)
-        if link is None:
-            raise HTTPException(status_code=404, detail="لینک پیدا نشد")
-        old_proxy_id = link.get("mtproto_proxy_id")
-        link["mtproto_public_host"] = chosen["domain"]
-        link["mtproto_public_port"] = chosen["port"]
-        link["mtproto_proxy_id"] = chosen["id"]
-        link["mtproto_public_pending"] = False
-        cur_label = link.get("label", label)
-
-    if old_proxy_id and old_proxy_id != chosen["id"]:
-        asyncio.create_task(bottokentcpproxy.delete_public_proxy(old_proxy_id))
-
-    asyncio.create_task(save_state())
-    host = get_host()
-    share_link = generate_share_link(uid, host, remark=f"RVG-{cur_label}", protocol="mtproto")
-    if not attached_link:
-        attached_link = {"uuid": uid, "label": cur_label}
-    log_activity(
-        "link",
-        f"TCP Proxy عمومی «{cur_label}» با دامنه‌ی {chosen['domain']}:{chosen['port']} تنظیم شد",
-        "ok",
-    )
-    return {
-        "ok": True,
-        "result": chosen,
-        "attached_link": attached_link,
-        "share_link": share_link,
-    }
-
-
-@app.post("/api/domain-gen/start")
-async def api_domain_gen_start(request: Request, _=Depends(require_auth)):
-    body = await request.json()
-    token = str(body.get("token", "")).strip()
-    port = int(body.get("port") or CONFIG["port"])
-    count = int(body.get("count") or 10)
-    try:
-        botgeneratedomin.start_job(token, port, target_count=count)
-    except RuntimeError as exc:
-        raise HTTPException(status_code=409, detail=str(exc))
-    log_activity("system", f"ساخت {count} دامنه آغاز شد", "info")
-    return {"ok": True}
-
-@app.post("/api/domain-gen/stop")
-async def api_domain_gen_stop(_=Depends(require_auth)):
-    stopped = botgeneratedomin.stop_job()
-    if stopped:
-        log_activity("system", "ساخت دامنه متوقف شد", "warn")
-    return {"ok": True, "stopped": stopped}
-
-@app.get("/api/domain-gen/status")
-async def api_domain_gen_status(_=Depends(require_auth)):
-    return botgeneratedomin.get_status()
-
 # ── System resources (CPU/RAM/Swap/Disk/Temp) ─────────────────────────────────
 def _read_system_stats() -> dict:
     """بلاک‌کننده — با asyncio.to_thread صدا زده می‌شه تا event loop رو قفل نکنه."""
@@ -1827,9 +1719,6 @@ async def _create_link_core(body: dict) -> dict:
             link_data["mtproto_public_host"] = pub_host
             link_data["mtproto_public_port"] = pub_port
             link_data["mtproto_public_pending"] = False
-        elif bottokentcpproxy.has_saved_token():
-            link_data["mtproto_public_pending"] = True
-            asyncio.create_task(_attach_mtproto_public_proxy(uid, inst["port"], label))
         else:
             # حالت self-hosted: پورت داخلی instance مستقیماً به‌عنوان آدرس عمومی
             # استفاده می‌شود (سرور خود کاربر است و پورت‌ها مستقیم باز می‌شوند).
@@ -1847,7 +1736,109 @@ async def _create_link_core(body: dict) -> dict:
             ss_cipher = DEFAULT_CIPHER
         link_data["ss_cipher"] = ss_cipher
         link_data["ss_password"] = secrets.token_urlsafe(16)
-    
+
+    def _free_port() -> int:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(("0.0.0.0", 0))
+            return s.getsockname()[1]
+
+    def _resolve_port(manual_val) -> int:
+        """اگه کاربر پورت دستی داده باشه (و آزاد باشه) همون استفاده می‌شه،
+        وگرنه یه پورت آزاد تصادفی تخصیص داده می‌شه."""
+        if manual_val not in (None, "", 0, "0"):
+            try:
+                p = int(manual_val)
+            except (TypeError, ValueError):
+                raise HTTPException(status_code=400, detail="شماره پورت نامعتبر است")
+            if not (1 <= p <= 65535):
+                raise HTTPException(status_code=400, detail="شماره پورت باید بین ۱ تا ۶۵۵۳۵ باشد")
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                try:
+                    s.bind(("0.0.0.0", p))
+                except OSError:
+                    raise HTTPException(status_code=409, detail=f"پورت {p} در حال حاضر روی سرور اشغال است")
+            return p
+        return _free_port()
+
+    manual_port_raw = body.get("manual_port")
+
+    if protocol == "vless-reality":
+        dest = (body.get("reality_dest") or xcore.DEFAULT_REALITY_DEST).strip()
+        r_port = _resolve_port(manual_port_raw)
+        try:
+            meta = await xcore.add_vless_reality(uid, uid, r_port, dest=dest)
+        except Exception as exc:
+            logger.error(f"راه‌اندازی VLESS Reality ناموفق برای {uid[:8]}: {exc}")
+            raise HTTPException(status_code=502, detail=f"راه‌اندازی Reality ناموفق: {exc}")
+        link_data["xcore_port"] = r_port
+        link_data["reality_dest"] = dest
+        link_data["reality_dest_port"] = int(dest.split(":")[-1]) if ":" in dest else 443
+        link_data["reality_server_name"] = meta["server_name"]
+        link_data["reality_public_key"] = meta["public_key"]
+        link_data["reality_short_id"] = meta["short_id"]
+        link_data["reality_flow"] = "xtls-rprx-vision"
+        link_data["reality_private_key"] = meta["private_key"]
+        logger.info(f"Reality[{uid[:8]}]: VLESS راه‌اندازی شد روی پورت {r_port} (dest={dest})")
+
+    if protocol == "trojan-reality":
+        dest = (body.get("reality_dest") or xcore.DEFAULT_REALITY_DEST).strip()
+        r_port = _resolve_port(manual_port_raw)
+        try:
+            meta = await xcore.add_trojan_reality(uid, r_port, dest=dest)
+        except Exception as exc:
+            logger.error(f"راه‌اندازی Trojan Reality ناموفق برای {uid[:8]}: {exc}")
+            raise HTTPException(status_code=502, detail=f"راه‌اندازی Reality ناموفق: {exc}")
+        link_data["xcore_port"] = r_port
+        link_data["reality_dest"] = dest
+        link_data["reality_dest_port"] = int(dest.split(":")[-1]) if ":" in dest else 443
+        link_data["reality_server_name"] = meta["server_name"]
+        link_data["reality_public_key"] = meta["public_key"]
+        link_data["reality_short_id"] = meta["short_id"]
+        link_data["reality_private_key"] = meta["private_key"]
+        link_data["trojan_password"] = meta["password"]
+        logger.info(f"Reality[{uid[:8]}]: Trojan راه‌اندازی شد روی پورت {r_port} (dest={dest})")
+
+    if protocol == "shadowsocks-xray":
+        ss_cipher = body.get("ss_cipher") or DEFAULT_CIPHER
+        if ss_cipher not in CIPHERS:
+            ss_cipher = DEFAULT_CIPHER
+        r_port = _resolve_port(manual_port_raw)
+        try:
+            meta = await xcore.add_shadowsocks_xray(uid, r_port, method=ss_cipher)
+        except Exception as exc:
+            logger.error(f"راه‌اندازی Shadowsocks (xray) ناموفق برای {uid[:8]}: {exc}")
+            raise HTTPException(status_code=502, detail=f"راه‌اندازی ناموفق: {exc}")
+        link_data["xcore_port"] = r_port
+        link_data["ss_cipher"] = ss_cipher
+        link_data["ss_password"] = meta["password"]
+        logger.info(f"xcore[{uid[:8]}]: Shadowsocks راه‌اندازی شد روی پورت {r_port}")
+
+    if protocol == "hysteria2":
+        r_port = _resolve_port(manual_port_raw)
+        try:
+            meta = await xcore.add_hysteria2(uid, r_port)
+        except Exception as exc:
+            logger.error(f"راه‌اندازی Hysteria2 ناموفق برای {uid[:8]}: {exc}")
+            raise HTTPException(status_code=502, detail=f"راه‌اندازی ناموفق: {exc}")
+        link_data["xcore_port"] = r_port
+        link_data["hy2_password"] = meta["password"]
+        logger.info(f"xcore[{uid[:8]}]: Hysteria2 راه‌اندازی شد روی پورت {r_port}")
+
+    if protocol == "wireguard":
+        r_port = _resolve_port(manual_port_raw)
+        try:
+            meta = await xcore.add_wireguard(uid, r_port)
+        except Exception as exc:
+            logger.error(f"راه‌اندازی WireGuard ناموفق برای {uid[:8]}: {exc}")
+            raise HTTPException(status_code=502, detail=f"راه‌اندازی ناموفق: {exc}")
+        link_data["xcore_port"] = r_port
+        link_data["wg_server_public_key"] = meta["server_public_key"]
+        link_data["wg_client_private_key"] = meta["client_private_key"]
+        link_data["wg_client_public_key"] = meta["client_public_key"]
+        link_data["wg_client_ip_cidr"] = meta["client_ip_cidr"]
+        logger.info(f"xcore[{uid[:8]}]: WireGuard راه‌اندازی شد روی پورت {r_port}")
+
     async with LINKS_LOCK:
         LINKS[uid] = link_data
 
@@ -1896,9 +1887,7 @@ async def list_links(_=Depends(require_auth)):
                 "mtproto_public_host": d.get("mtproto_public_host"),
                 "mtproto_public_port": d.get("mtproto_public_port"),
                 "mtproto_public_pending": bool(
-                    d.get("mtproto_public_pending")
-                    or (not d.get("mtproto_manual_port") and bottokentcpproxy.has_saved_token()
-                        and not d.get("mtproto_public_host"))
+                    d.get("mtproto_public_pending") and not d.get("mtproto_public_host")
                 ),
             }
         result.append({
@@ -2070,8 +2059,8 @@ async def delete_link(uid: str, _=Depends(require_auth)):
         del LINKS[uid]
     if proto == "mtproto":
         await mtproto.stop_instance(uid)
-        if proxy_id:
-            asyncio.create_task(bottokentcpproxy.delete_public_proxy(proxy_id))
+    elif proto in ("vless-reality", "trojan-reality", "shadowsocks-xray", "hysteria2", "wireguard"):
+        await xcore.remove_link(uid)
     if sub_id:
         async with SUBS_LOCK:
             if sub_id in SUBS:

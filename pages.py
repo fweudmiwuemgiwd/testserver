@@ -1891,30 +1891,6 @@ a{color:inherit;text-decoration:none}
   background:var(--card)}
 
 /* ── تم اختصاصی فیروزه‌ای برای مودال Bot TCP Proxy (تمایز بصری از بقیه مودال‌ها) ── */
-#modal-bot-tcp-proxy .cm-head{background:linear-gradient(155deg,rgba(20,184,166,.16) 0%,transparent 70%)}
-#modal-bot-tcp-proxy .cm-head::before{background:radial-gradient(circle,rgba(20,184,166,.2),transparent 70%)}
-#modal-bot-tcp-proxy .cm-head-icon{background:linear-gradient(135deg,#14b8a6,#0d9488);box-shadow:0 8px 20px rgba(20,184,166,.35)}
-#modal-bot-tcp-proxy .cm-section-label i{color:#14b8a6}
-#modal-bot-tcp-proxy .cm-pill.active{background:#14b8a6;border-color:#14b8a6;box-shadow:0 3px 10px rgba(20,184,166,.3)}
-#modal-bot-tcp-proxy .cm-input:focus{border-color:rgba(20,184,166,.5);box-shadow:0 0 0 3px rgba(20,184,166,.1)}
-#modal-bot-tcp-proxy #btp-status-note{background:var(--accent-d);border:1px solid var(--card-b);border-radius:12px;padding:12px 14px;transition:.2s}
-#modal-bot-tcp-proxy #btp-status-note.st-run{background:rgba(20,184,166,.1);border-color:rgba(20,184,166,.3)}
-#modal-bot-tcp-proxy #btp-status-note.st-run #btp-status-icon{color:#14b8a6}
-#modal-bot-tcp-proxy #btp-status-note.st-ok{background:var(--green-bg);border-color:rgba(34,197,94,.3)}
-#modal-bot-tcp-proxy #btp-status-note.st-ok #btp-status-icon{color:var(--green-t)}
-#modal-bot-tcp-proxy #btp-status-note.st-err{background:var(--red-bg);border-color:rgba(239,68,68,.3)}
-#modal-bot-tcp-proxy #btp-status-note.st-err #btp-status-icon{color:var(--red-t)}
-#modal-bot-tcp-proxy #btp-status-note.st-warn{background:var(--amber-bg);border-color:rgba(245,158,11,.3)}
-#modal-bot-tcp-proxy #btp-status-note.st-warn #btp-status-icon{color:var(--amber-t)}
-#modal-bot-tcp-proxy #btp-status-text{color:var(--t1);font-weight:600}
-#modal-bot-tcp-proxy #btp-ping-status-note{background:var(--accent-d);border:1px solid var(--card-b);border-radius:12px;padding:12px 14px;transition:.2s}
-#modal-bot-tcp-proxy #btp-ping-status-note.st-run{background:rgba(20,184,166,.1);border-color:rgba(20,184,166,.3)}
-#modal-bot-tcp-proxy #btp-ping-status-note.st-run #btp-ping-status-icon{color:#14b8a6}
-#modal-bot-tcp-proxy #btp-ping-status-note.st-ok{background:var(--green-bg);border-color:rgba(34,197,94,.3)}
-#modal-bot-tcp-proxy #btp-ping-status-note.st-ok #btp-ping-status-icon{color:var(--green-t)}
-#modal-bot-tcp-proxy #btp-ping-status-note.st-err{background:var(--red-bg);border-color:rgba(239,68,68,.3)}
-#modal-bot-tcp-proxy #btp-ping-status-note.st-err #btp-ping-status-icon{color:var(--red-t)}
-#modal-bot-tcp-proxy #btp-ping-status-text{color:var(--t1);font-weight:600}
 .cm-btn-cancel{flex:.55;justify-content:center;padding:12px;border-radius:12px;background:transparent;
   border:1px solid var(--card-b);color:var(--t2);font-family:inherit;font-size:12.5px;font-weight:700;
   cursor:pointer;transition:.15s;display:flex;align-items:center}
@@ -1932,7 +1908,6 @@ a{color:inherit;text-decoration:none}
   .cm-body{padding:24px 34px 8px}
   .cm-head{padding:28px 34px 22px}
   .cm-footer{padding:18px 34px}
-  #modal-bot-tcp-proxy .cm-modal{max-width:560px}
 }
 
 /* موبایل = باتم‌شیت */
@@ -2039,6 +2014,36 @@ a{color:inherit;text-decoration:none}
               <div class="cm-opt-text"><div class="cm-opt-title">Telegram Proxy</div><div class="cm-opt-desc">پروکسی MTProto مستقیم روی یک پورت TCP اختصاصی</div></div>
               <span class="cm-opt-tag" style="background:var(--purple-bg);color:var(--purple-t)">MTProto</span>
             </div>
+            <div class="cm-opt" data-base="reality" onclick="cmSelectBase('reality',this)">
+              <div class="cm-opt-radio"></div>
+              <div class="cm-opt-icon"><i class="ti ti-shield-check-filled"></i></div>
+              <div class="cm-opt-text"><div class="cm-opt-title">VLESS · REALITY</div><div class="cm-opt-desc">TLS واقعی + بدون نیاز به دامنه؛ اجرا با باینری رسمی sing-box</div></div>
+              <span class="cm-opt-tag" style="background:var(--green-bg);color:var(--green-t)">جدید</span>
+            </div>
+            <div class="cm-opt" data-base="trojan-reality" onclick="cmSelectBase('trojan-reality',this)">
+              <div class="cm-opt-radio"></div>
+              <div class="cm-opt-icon"><i class="ti ti-shield-check-filled"></i></div>
+              <div class="cm-opt-text"><div class="cm-opt-title">Trojan · REALITY</div><div class="cm-opt-desc">همون REALITY ولی روی Trojan</div></div>
+              <span class="cm-opt-tag" style="background:var(--green-bg);color:var(--green-t)">جدید</span>
+            </div>
+            <div class="cm-opt" data-base="shadowsocks-xray" onclick="cmSelectBase('shadowsocks-xray',this)">
+              <div class="cm-opt-radio"></div>
+              <div class="cm-opt-icon"><i class="ti ti-shield-lock-filled"></i></div>
+              <div class="cm-opt-text"><div class="cm-opt-title">Shadowsocks · Native</div><div class="cm-opt-desc">پورت اختصاصی، مستقیم روی sing-box (نه WS)</div></div>
+              <span class="cm-opt-tag" style="background:var(--green-bg);color:var(--green-t)">جدید</span>
+            </div>
+            <div class="cm-opt" data-base="hysteria2" onclick="cmSelectBase('hysteria2',this)">
+              <div class="cm-opt-radio"></div>
+              <div class="cm-opt-icon"><i class="ti ti-bolt"></i></div>
+              <div class="cm-opt-text"><div class="cm-opt-title">Hysteria2</div><div class="cm-opt-desc">مبتنی بر QUIC/UDP — عالی برای شبکه‌های ضعیف/پرتاخیر</div></div>
+              <span class="cm-opt-tag" style="background:var(--green-bg);color:var(--green-t)">جدید</span>
+            </div>
+            <div class="cm-opt" data-base="wireguard" onclick="cmSelectBase('wireguard',this)">
+              <div class="cm-opt-radio"></div>
+              <div class="cm-opt-icon"><i class="ti ti-git-branch"></i></div>
+              <div class="cm-opt-text"><div class="cm-opt-title">WireGuard</div><div class="cm-opt-desc">VPN کلاسیک؛ کانفیگ کامل با کلاینت رسمی WireGuard کار می‌کنه</div></div>
+              <span class="cm-opt-tag" style="background:var(--green-bg);color:var(--green-t)">جدید</span>
+            </div>
           </div></div></div>
         </div>
       </div>
@@ -2113,6 +2118,16 @@ a{color:inherit;text-decoration:none}
         <input type="hidden" id="nl-fp" value="chrome">
       
         <input type="hidden" id="nl-proto" value="vless-ws">
+        <div class="cm-field" id="reality-dest-field" style="display:none;margin-top:10px">
+          <label><i class="ti ti-server-2" style="color:var(--accent);margin-left:4px"></i>Dest (سایت camouflage)</label>
+          <input class="cm-input" id="nl-reality-dest" type="text" placeholder="www.microsoft.com:443" value="www.microsoft.com:443">
+          <div class="cm-note" style="margin-top:8px"><i class="ti ti-info-circle"></i><span>ترافیک با این دامنه (روی پورت ۴۴۳) مقلد می‌شه؛ کلید/short-id به‌صورت خودکار ساخته می‌شه.</span></div>
+        </div>
+        <div class="cm-field" id="manual-port-field" style="display:none;margin-top:10px">
+          <label><i class="ti ti-plug-connected" style="color:var(--accent);margin-left:4px"></i>پورت (اختیاری)</label>
+          <input class="cm-input" id="nl-manual-port" type="number" min="1" max="65535" placeholder="خالی = خودکار (تصادفی آزاد)">
+          <div class="cm-note" style="margin-top:8px"><i class="ti ti-info-circle"></i><span>اگه خالی بذاری یه پورت آزاد خودکار انتخاب می‌شه؛ وگرنه دقیقاً همین پورت استفاده می‌شه (باید در فایروال باز باشه).</span></div>
+        </div>
         <div class="cm-note" style="margin-top:12px" id="transport-note"></div>
       </div>
 
@@ -2135,14 +2150,6 @@ a{color:inherit;text-decoration:none}
       </div>
 
       <div class="cm-section" id="mtproto-port-field" style="display:none;margin-bottom:0">
-        <div id="auto-domain-box" style="margin-top:10px, display: none">
-          <div id="auto-domain-token-wrap" style="display:none;margin-top:9px">
-            <div class="cm-row2">
-              <input class="cm-input" id="auto-domain-token" type="password" placeholder="Railway API Token">
-              <button type="button" class="btn btn-p btn-sm" onclick="submitAutoDomainToken()"><i class="ti ti-check"></i> تایید و دریافت</button>
-            </div>
-          </div>
-        </div>
         <div class="cm-row2">
           <div class="cm-field">
             <label><i class="ti ti-route" style="color:var(--accent);margin-left:4px"></i>پورت TCP</label>
@@ -2170,8 +2177,8 @@ a{color:inherit;text-decoration:none}
           </div>
         </div>
         <div style="font-size:11px;opacity:.7;margin:-4px 0 10px;line-height:1.7">
-          اگر TCP Proxy را خودت از داشبورد Railway ساخته‌ای، دامنه و پورت عمومی‌اش را اینجا وارد کن
-          (همانی که به پورت داخلی بالا map شده). بدون این، لینک از بیرون کار نمی‌کند.
+          اگر می‌خواهی آدرس/پورت عمومی متفاوتی از پورت داخلی معرفی شود (مثلاً پشت یک ریورس‌پروکسی یا NAT)، اینجا وارد کن
+          (همانی که به پورت داخلی بالا map شده). در حالت معمول خالی بگذار تا خودکار همان IP سرور و پورت داخلی استفاده شود.
         </div>
         <div class="cm-note" style="margin-top:0">
         </div>
@@ -2394,178 +2401,6 @@ a{color:inherit;text-decoration:none}
     </div>
   </div>
 </div>
-<div class="modal-bg" id="modal-domain-gen">
-  <div class="modal-v2 cm-modal" style="max-width:460px">
-    <button class="cm-close" onclick="closeModal('modal-domain-gen')"><i class="ti ti-x"></i></button>
-    <div class="cm-head">
-      <div class="cm-head-row">
-        <div class="cm-head-icon"><i class="ti ti-repeat"></i></div>
-        <div>
-          <div class="cm-head-title">تولید انبوه دامنه</div>
-          <div class="cm-head-sub">ساخت چند TCP Proxy روی Railway برای گرفتن چند دامنه‌ی متفاوت</div>
-        </div>
-      </div>
-    </div>
-    <div class="cm-body">
-      <div class="cm-section" id="dg-token-section">
-        <div class="cm-section-label"><i class="ti ti-key"></i> احراز هویت</div>
-        <div class="cm-field">
-          <label>Railway API Token</label>
-          <input class="cm-input" id="dg-token" type="password" placeholder="توکن اکانت یا پروژه‌ی Railway">
-        </div>
-        <div class="cm-row2">
-          <div class="cm-field" style="margin-bottom:0">
-            <label>پورت داخلی اپلیکیشن (اختیاری)</label>
-            <input class="cm-input" id="dg-port" type="number" placeholder="پیش‌فرض: پورت خودِ پنل">
-          </div>
-          <div class="cm-field" style="margin-bottom:0">
-            <label>تعداد دامنه‌ی مورد نیاز</label>
-            <input class="cm-input" id="dg-count" type="number" min="1" value="10">
-          </div>
-        </div>
-      </div>
-      <div class="cm-section" id="dg-token-saved-section" style="display:none">
-        <div class="cm-note" style="margin-top:0">
-          <i class="ti ti-shield-check"></i>
-          <span>توکن Railway از قبل ذخیره شده و نیازی به وارد کردن دوباره نیست.
-          <a href="javascript:void(0)" onclick="dgChangeToken()" style="color:var(--accent2);font-weight:700">تغییر توکن</a></span>
-        </div>
-      </div>
-      <div class="cm-section" style="margin-bottom:6px">
-        <div class="cm-section-label"><i class="ti ti-activity"></i> وضعیت اجرا</div>
-        <div class="cm-note" id="dg-status-note">
-          <i class="ti ti-info-circle" id="dg-status-icon"></i>
-          <span id="dg-status-text">هنوز شروع نشده</span>
-        </div>
-        <div class="upd-log-box" id="dg-log-box" style="margin-top:10px;max-height:170px;display:none">
-          <p class="upd-log-empty">لاگی موجود نیست</p>
-        </div>
-        <div id="dg-results" style="display:flex;flex-direction:column;gap:6px;margin-top:10px"></div>
-      </div>
-    </div>
-    <div class="cm-footer">
-      <button class="cm-btn-cancel" onclick="closeModal('modal-domain-gen')">بستن</button>
-      <button class="cm-btn-cancel" id="dg-stop-btn" style="display:none;color:var(--red-t);border-color:rgba(239,68,68,.25)" onclick="stopDomainGen()">
-        <i class="ti ti-player-stop"></i> توقف
-      </button>
-      <button class="cm-btn-submit" id="dg-start-btn" onclick="startDomainGen()">
-        <i class="ti ti-player-play"></i> شروع ساخت
-      </button>
-    </div>
-  </div>
-</div>
-<div class="modal-bg" id="modal-bot-tcp-proxy">
-  <div class="modal-v2 cm-modal" style="max-width:560px">
-    <button class="cm-close" onclick="btpCloseModal()"><i class="ti ti-x"></i></button>
-
-    <div class="cm-head">
-      <div class="cm-head-row">
-        <div class="cm-head-icon"><i class="ti ti-server-2"></i></div>
-        <div>
-          <div class="cm-head-title">ساخت TCP Proxy اختصاصی</div>
-          <div class="cm-head-sub">اتصال خودکار به Railway و ساخت پروکسی تلگرام</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="cm-body">
-      <!-- مرحله ۱: توکن و پورت -->
-      <div id="btp-step-input">
-        <div class="cm-section">
-          <div class="cm-section-label"><i class="ti ti-key"></i> اطلاعات لازم</div>
-          <div class="cm-field">
-            <label>Railway API Token</label>
-            <input class="cm-input" id="btp-token" type="password" placeholder="توکن اکانت یا پروژه‌ی Railway">
-            <a href="https://railway.com/account/tokens" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--accent2);margin-top:6px">
-              <i class="ti ti-external-link"></i> دریافت توکن از Railway
-            </a>
-          </div>
-          <div class="cm-field" id="btp-token-saved-note" style="display:none;margin-bottom:14px">
-            <div class="cm-note" style="margin:0">
-              <i class="ti ti-shield-check"></i>
-              <span>توکن قبلی روی سرور ذخیره است؛ لازم نیست دوباره وارد کنی.
-              <a href="javascript:void(0)" onclick="btpChangeToken()" style="color:var(--accent2);font-weight:700">تغییر توکن</a></span>
-            </div>
-          </div>
-          <div class="cm-field" style="margin-bottom:0">
-            <label>پورت</label>
-            <input class="cm-input" id="btp-port" type="number" placeholder="مثلاً پورت داخلی پروکسی تلگرام">
-          </div>
-        </div>
-      </div>
-
-      <!-- مرحله ۲: هشدار خاموش کردن VPN -->
-      <div id="btp-step-vpn" style="display:none;text-align:center;padding:10px 0">
-        <i class="ti ti-shield-off" style="font-size:40px;color:var(--amber-t)"></i>
-        <div style="font-weight:700;font-size:15px;margin-top:12px">اگر VPN روی این دستگاه روشن است، خاموشش کن</div>
-        <div style="color:var(--t3);font-size:12.5px;margin-top:6px">برای این‌که تست اتصال درست انجام شود، باید بدون VPN باشی.</div>
-      </div>
-
-      <!-- مرحله جدید: انتخاب دستی دامنه‌ها (به‌جای اسکن خودکار همه‌چیز) -->
-      <div id="btp-step-select" style="display:none">
-        <div class="cm-note" style="margin-bottom:12px">
-          <i class="ti ti-list-check"></i>
-          <span>دامنه‌هایی که می‌خوای بررسی بشن رو انتخاب کن. می‌تونی همه رو خودکار تست کنی، یا مستقیم به‌عنوان سالم در نظر بگیری و بری سراغ ساخت پروکسی (برای وقتی خودت قبلاً دستی چک کردی).</span>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <span id="btp-select-count" style="font-size:11px;color:var(--t3)">۰ دامنه انتخاب شده</span>
-          <div style="display:flex;gap:6px">
-            <button class="btn btn-o" style="padding:4px 10px;font-size:10.5px" onclick="btpSelectAllDomains()">انتخاب همه</button>
-            <button class="btn btn-o" style="padding:4px 10px;font-size:10.5px" onclick="btpSelectNoDomains()">هیچ‌کدام</button>
-          </div>
-        </div>
-        <div id="btp-select-list" style="display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto"></div>
-        <div style="display:flex;gap:8px;margin-top:14px">
-          <button class="btn btn-o" style="flex:1;justify-content:center" onclick="btpSelectThenPing()"><i class="ti ti-radar-2"></i> تست خودکار انتخاب‌شده‌ها</button>
-          <button class="btn btn-p" style="flex:1;justify-content:center" onclick="btpSelectSkipScan()"><i class="ti ti-player-skip-forward"></i> رد شدن از تست، مستقیم برو</button>
-        </div>
-      </div>
-
-      <!-- مرحله ۳: پینگ‌گیری واقعی از دامنه‌ها -->
-      <div id="btp-step-ping" style="display:none">
-        <div class="cm-note" id="btp-ping-status-note">
-          <i class="ti ti-loader-2" id="btp-ping-status-icon" style="animation:spin 1s linear infinite"></i>
-          <span id="btp-ping-status-text">در حال تست دامنه‌ها...</span>
-        </div>
-        <div id="btp-ping-list" style="display:flex;flex-direction:column;gap:5px;margin-top:12px;max-height:260px;overflow-y:auto"></div>
-      </div>
-
-      <!-- مرحله ۴: در حال ساخت پروکسی -->
-      <div id="btp-step-search" style="display:none">
-        <div class="cm-note" id="btp-status-note">
-          <i class="ti ti-info-circle" id="btp-status-icon"></i>
-          <span id="btp-status-text">در حال جست‌وجو...</span>
-        </div>
-        <div id="btp-found-list" style="display:flex;flex-direction:column;gap:6px;margin-top:12px;max-height:260px;overflow-y:auto"></div>
-      </div>
-
-      <!-- مرحله ۵: نتیجه‌ی نهایی -->
-      <div id="btp-step-done" style="display:none;text-align:center;padding:6px 0">
-        <i class="ti ti-circle-check" style="font-size:40px;color:var(--green-t)"></i>
-        <div style="font-weight:700;font-size:15px;margin-top:12px">پروکسی تلگرام ساخته شد</div>
-        <div id="btp-done-domain" style="font-family:ui-monospace,monospace;font-size:12.5px;color:var(--t2);margin-top:8px"></div>
-        <div id="btp-done-link-wrap" style="display:none;margin-top:14px">
-          <div class="cm-field" style="margin-bottom:0">
-            <input class="cm-input" id="btp-done-link" readonly style="text-align:left;direction:ltr;font-family:ui-monospace,monospace;font-size:11.5px">
-          </div>
-          <button class="btn btn-g" style="margin-top:8px" onclick="btpCopyLink()"><i class="ti ti-copy"></i> کپی لینک پروکسی</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="cm-footer">
-      <button class="cm-btn-cancel" id="btp-cancel-btn" onclick="btpCloseModal()">انصراف</button>
-      <button class="cm-btn-cancel" id="btp-stop-btn" style="display:none;color:var(--red-t);border-color:rgba(239,68,68,.25)" onclick="stopBotTcpProxy()">
-        <i class="ti ti-player-stop"></i> توقف
-      </button>
-      <button class="cm-btn-submit" id="btp-continue-btn" style="display:none">ادامه</button>
-      <button class="cm-btn-submit" id="btp-start-btn" onclick="startBotTcpProxy()">
-        <i class="ti ti-player-play"></i> شروع
-      </button>
-      <button class="cm-btn-submit" id="btp-close-done-btn" style="display:none" onclick="btpCloseModal()">بستن</button>
-    </div>
-  </div>
-</div>
 <div class="modal-bg" id="modal-zeus-proxy">
   <div class="modal-v2 cm-modal" style="max-width:500px">
     <button class="cm-close" onclick="zpCloseModal()"><i class="ti ti-x"></i></button>
@@ -2584,21 +2419,6 @@ a{color:inherit;text-decoration:none}
     <div class="cm-body">
       <!-- مرحله ۱: توکن + کانفیگ -->
       <div id="zp-step-input">
-        <div class="cm-section">
-          <div class="cm-section-label"><i class="ti ti-key"></i> توکن Railway</div>
-          <div class="cm-field">
-            <label>Railway API Token</label>
-            <input class="cm-input" id="zp-token" type="password" placeholder="توکن اکانت یا پروژه‌ی Railway">
-          </div>
-          <div class="cm-field" id="zp-token-saved-note" style="display:none;margin-bottom:0">
-            <div class="cm-note" style="margin:0">
-              <i class="ti ti-shield-check"></i>
-              <span>توکن قبلی روی سرور ذخیره است (مشترک با Bot TCP Proxy)؛ لازم نیست دوباره وارد کنی.
-              <a href="javascript:void(0)" onclick="zpChangeToken()" style="color:var(--accent2);font-weight:700">تغییر توکن</a></span>
-            </div>
-          </div>
-        </div>
-
         <!-- ── کانفیگ‌های پروکسی ── -->
         <div class="cm-section" style="margin-top:10px">
           <div class="cm-section-label"><i class="ti ti-settings"></i> کانفیگ پروکسی</div>
@@ -2623,7 +2443,7 @@ a{color:inherit;text-decoration:none}
       <div id="zp-step-building" style="display:none;text-align:center;padding:14px 0">
         <i class="ti ti-loader-2" style="font-size:34px;color:var(--accent);animation:spin 1s linear infinite"></i>
         <div style="font-weight:700;font-size:14.5px;margin-top:12px">در حال ساخت پروکسی...</div>
-        <div style="color:var(--t3);font-size:12px;margin-top:4px">سرور SOCKS5 داخلی بالا می‌آید و TCP Proxy روی Railway ساخته می‌شود</div>
+        <div style="color:var(--t3);font-size:12px;margin-top:4px">سرور SOCKS5 روی یک پورت آزاد سرور بالا می‌آید</div>
       </div>
 
       <!-- خطا -->
@@ -2752,49 +2572,6 @@ a{color:inherit;text-decoration:none}
     </div>
     <div class="cm-footer">
       <button class="cm-btn-submit" style="width:100%;justify-content:center" onclick="zpCloseIps()">بستن</button>
-    </div>
-  </div>
-</div>
-<div class="modal-bg" id="modal-domain-scan">
-  <div class="modal-v2 cm-modal" style="max-width:480px">
-    <button class="cm-close" onclick="closeModal('modal-domain-scan')"><i class="ti ti-x"></i></button>
-    <div class="cm-head">
-      <div class="cm-head-row">
-        <div class="cm-head-icon"><i class="ti ti-search"></i></div>
-        <div>
-          <div class="cm-head-title">جستجوی دامنه‌ی دلخواه</div>
-          <div class="cm-head-sub">دامنه‌های موردنظرت رو وارد کن، هر بار Enter بزن</div>
-        </div>
-      </div>
-    </div>
-    <div class="cm-body">
-      <div class="cm-section" id="ds-token-section">
-        <div class="cm-field">
-          <label>Railway API Token</label>
-          <input class="cm-input" id="ds-token" type="password" placeholder="در صورتی که قبلاً ذخیره نشده">
-        </div>
-      </div>
-      <div class="cm-section">
-        <div class="cm-field">
-          <label>افزودن دامنه</label>
-          <input class="cm-input" id="ds-domain-inp" placeholder="مثلاً nozomi.proxy.rlwy.net و Enter بزن"
-                 onkeydown="if(event.key==='Enter'){event.preventDefault();dsAddDomain()}">
-        </div>
-        <div class="cm-pills" id="ds-domain-chips"></div>
-      </div>
-      <div class="cm-section" style="margin-bottom:6px">
-        <div class="cm-note" id="ds-status-note">
-          <i class="ti ti-info-circle"></i> <span id="ds-status-text">هنوز شروع نشده</span>
-        </div>
-        <div class="upd-log-box" id="ds-log-box" style="margin-top:10px;max-height:170px;display:none">
-          <p class="upd-log-empty">لاگی موجود نیست</p>
-        </div>
-      </div>
-    </div>
-    <div class="cm-footer">
-      <button class="cm-btn-cancel" onclick="closeModal('modal-domain-scan')">بستن</button>
-      <button class="cm-btn-cancel" id="ds-stop-btn" style="display:none;color:var(--red-t)" onclick="stopDomainScan()"><i class="ti ti-player-stop"></i> توقف</button>
-      <button class="cm-btn-submit" id="ds-start-btn" onclick="startDomainScan()"><i class="ti ti-player-play"></i> شروع اسکن</button>
     </div>
   </div>
 </div>
@@ -3142,7 +2919,7 @@ a{color:inherit;text-decoration:none}
     </div>
   </div>
   <div class="dash-footer">
-    <span class="df-text">codebox RVG Gateway v9.2 · Railway · 2025</span>
+    <span class="df-text">codebox RVG Gateway v9.2 · Self-hosted · 2026</span>
     <a class="df-link" href="https://t.me/CodeBoxo" target="_blank"><i class="ti ti-brand-telegram"></i> t.me/CodeBoxo</a>
   </div>
 </section>
@@ -3157,9 +2934,6 @@ a{color:inherit;text-decoration:none}
       </button>
       <button class="btn btn-g" onclick="bulkCreateGroup('messenger')" id="bulk-messenger-btn">
         <i class="ti ti-brand-telegram"></i> <span>۱۰ کانفیگ پیام‌رسان‌ها</span>
-      </button>
-      <button class="btn btn-g" onclick="openModal('modal-bot-tcp-proxy');btpCheckTokenState()">
-        <i class="ti ti-server-2"></i> <span>Bot tcp proxy</span>
       </button>
       <button class="btn btn-g" id="zeus-nav-btn" onclick="openModal('modal-zeus-proxy');zpCheckTokenState()">
         <i class="ti ti-bolt"></i> <span>Zeus proxy</span>
@@ -3510,14 +3284,14 @@ a{color:inherit;text-decoration:none}
         <div class="srv-hero-icon"><i class="ti ti-server-2"></i></div>
         <div class="srv-hero-text">
           <div class="srv-hero-domain" id="set-host">—</div>
-          <div class="srv-hero-sub"><span class="dot dg pulse"></span> آنلاین · Railway</div>
+          <div class="srv-hero-sub"><span class="dot dg pulse"></span> آنلاین · Self-hosted</div>
         </div>
       </div>
       <div class="srv-tiles">
         <div class="srv-tile"><div class="srv-tile-icon"><i class="ti ti-route"></i></div><div class="srv-tile-text"><div class="srv-tile-label">پورت</div><div class="srv-tile-val">443 (TLS)</div></div></div>
         <div class="srv-tile"><div class="srv-tile-icon"><i class="ti ti-versions"></i></div><div class="srv-tile-text"><div class="srv-tile-label">نسخه</div><div class="srv-tile-val">v9.2</div></div></div>
         <div class="srv-tile"><div class="srv-tile-icon"><i class="ti ti-brand-fastapi"></i></div><div class="srv-tile-text"><div class="srv-tile-label">فریم‌ورک</div><div class="srv-tile-val">FastAPI + Uvicorn</div></div></div>
-        <div class="srv-tile"><div class="srv-tile-icon"><i class="ti ti-cloud"></i></div><div class="srv-tile-text"><div class="srv-tile-label">پلتفرم</div><div class="srv-tile-val">Railway</div></div></div>
+        <div class="srv-tile"><div class="srv-tile-icon"><i class="ti ti-cloud"></i></div><div class="srv-tile-text"><div class="srv-tile-label">پلتفرم</div><div class="srv-tile-val">Self-hosted (Linux)</div></div></div>
         <div class="srv-tile" style="grid-column:1/-1"><div class="srv-tile-icon"><i class="ti ti-device-floppy"></i></div><div class="srv-tile-text"><div class="srv-tile-label">ذخیره‌سازی</div><div class="srv-tile-val">JSON File (/data)</div></div></div>
       </div>
       <div class="sr" style="border:none;padding:14px 0 0;margin-top:6px;border-top:1px solid var(--bd)">
@@ -3617,6 +3391,11 @@ function protoBadge(p){
     'trojan-xhttp-packet-up':['Trojan · XHTTP packet-up','pc-trojan'],
     'trojan-xhttp-stream-up':['Trojan · XHTTP stream-up','pc-trojan'],
     'mtproto':['Telegram Proxy · MTProto','pc-trojan'],
+    'vless-reality':['VLESS · REALITY','pc-ss'],
+    'trojan-reality':['Trojan · REALITY','pc-ss'],
+    'shadowsocks-xray':['Shadowsocks · Native (xray)','pc-ss'],
+    'hysteria2':['Hysteria2','pc-ss'],
+    'wireguard':['WireGuard','pc-ss'],
   };
   const v=m[p]||['ناشناخته','pc-ws'];
   return `<span class="proto-chip ${v[1]}">${v[0]}</span>`;
@@ -3683,7 +3462,7 @@ async function fetchStats(){
     document.getElementById('m-subs').textContent=d.subs_count??'—';
     document.getElementById('errs-badge').textContent=d.total_errors+' خطا';
     document.getElementById('uptime-inline').textContent=d.uptime;
-    document.getElementById('uptime-badge').textContent='Railway · '+d.uptime;
+    document.getElementById('uptime-badge').textContent='Self-hosted · '+d.uptime;
     document.getElementById('last-upd').textContent='آخرین بروزرسانی: '+new Date().toLocaleTimeString('fa-IR');
     document.getElementById('conns-live').innerHTML='<span class="dot dg pulse"></span> '+d.active_connections+' اتصال';
     document.getElementById('t-traffic').innerHTML=d.total_traffic_mb.toFixed(1)+'<span class="m-unit">MB</span>';
@@ -3993,6 +3772,11 @@ const BASE_INFO = {
   trojan:   { icon:'ti-shield-lock',    title:'Trojan',         desc:'شبیه‌سازی ترافیک HTTPS معمولی' },
   shadowsocks: { icon:'ti-shield-lock-filled', title:'Shadowsocks', desc:'رمزنگاری AEAD مستقیم، بدون نیاز به TLS خارجی' },
   telproxy: { icon:'ti-brand-telegram', title:'Telegram Proxy', desc:'پروکسی MTProto مستقیم روی یک پورت TCP اختصاصی' },
+  reality:  { icon:'ti-shield-check-filled', title:'VLESS · REALITY', desc:'TLS واقعی + بدون نیاز به دامنه؛ اجرا با باینری رسمی sing-box' },
+  'trojan-reality': { icon:'ti-shield-check-filled', title:'Trojan · REALITY', desc:'همون REALITY ولی روی Trojan' },
+  'shadowsocks-xray': { icon:'ti-shield-lock-filled', title:'Shadowsocks · Native', desc:'پورت اختصاصی، مستقیم روی sing-box' },
+  hysteria2: { icon:'ti-bolt', title:'Hysteria2', desc:'مبتنی بر QUIC/UDP — عالی برای شبکه‌های ضعیف' },
+  wireguard: { icon:'ti-git-branch', title:'WireGuard', desc:'VPN کلاسیک با کلاینت رسمی WireGuard' },
 };
 const TRANSPORT_INFO = {
   'ws':               { icon:'ti-link',    title:'WebSocket',            desc:'پایدار و سازگار با همه شرایط شبکه' },
@@ -4027,6 +3811,8 @@ function cmSelectBase(val, el){
   const ssField = document.getElementById('ss-cipher-field');
 
   if (val === 'telproxy') {
+    document.getElementById('reality-dest-field').style.display = 'none';
+    document.getElementById('manual-port-field').style.display = 'none';
     streamSection.style.display = 'none';
     normalNote.style.display = 'none';
     mtNote.style.display = 'flex';
@@ -4037,6 +3823,8 @@ function cmSelectBase(val, el){
     document.getElementById('cm-submit-text').textContent = 'ساخت پروکسی';
     document.getElementById('cm-head-icon').innerHTML = '<i class="ti ti-brand-telegram"></i>';
   } else if (val === 'shadowsocks') {
+    document.getElementById('reality-dest-field').style.display = 'none';
+    document.getElementById('manual-port-field').style.display = 'none';
     // Shadowsocks فقط یک حالت واقعی داره (SIP002 + plugin=v2ray-plugin برای WS+TLS)؛
     // xhttp روی هیچ کلاینت رایجی (v2rayN, NekoBox, ...) برای SS پشتیبانی نمیشه،
     // پس منوی transport اصلاً نشون داده نمیشه تا کاربر نتونه کانفیگ خراب بسازه.
@@ -4050,7 +3838,37 @@ function cmSelectBase(val, el){
     document.getElementById('cm-head-sub').textContent = 'رمزنگاری AEAD، پسورد به‌صورت خودکار ساخته می‌شود';
     document.getElementById('cm-submit-text').textContent = 'ساخت کانفیگ';
     document.getElementById('cm-head-icon').innerHTML = '<i class="ti ti-shield-lock-filled"></i>';
+  } else if (val === 'reality' || val === 'trojan-reality') {
+    cmTransport = 'tcp';
+    streamSection.style.display = 'none';
+    normalNote.style.display = 'none';
+    mtNote.style.display = 'none';
+    portField.style.display = 'none';
+    if (ssField) ssField.style.display = 'none';
+    document.getElementById('reality-dest-field').style.display = 'block';
+    document.getElementById('manual-port-field').style.display = 'block';
+    const isTr = val === 'trojan-reality';
+    document.getElementById('cm-head-title').textContent = isTr ? 'ساخت کانفیگ Trojan · REALITY' : 'ساخت کانفیگ VLESS · REALITY';
+    document.getElementById('cm-head-sub').textContent = 'TLS واقعی، بدون نیاز به دامنه — با باینری رسمی sing-box';
+    document.getElementById('cm-submit-text').textContent = 'ساخت کانفیگ';
+    document.getElementById('cm-head-icon').innerHTML = '<i class="ti ti-shield-check-filled"></i>';
+  } else if (val === 'shadowsocks-xray' || val === 'hysteria2' || val === 'wireguard') {
+    cmTransport = 'tcp';
+    streamSection.style.display = 'none';
+    normalNote.style.display = 'none';
+    mtNote.style.display = 'none';
+    portField.style.display = 'none';
+    if (ssField) ssField.style.display = 'none';
+    document.getElementById('reality-dest-field').style.display = 'none';
+    document.getElementById('manual-port-field').style.display = 'block';
+    const titles = {'shadowsocks-xray':'ساخت کانفیگ Shadowsocks (Native)','hysteria2':'ساخت کانفیگ Hysteria2','wireguard':'ساخت کانفیگ WireGuard'};
+    document.getElementById('cm-head-title').textContent = titles[val];
+    document.getElementById('cm-head-sub').textContent = 'روی یک پورت اختصاصی، کلید/پسورد خودکار ساخته می‌شه';
+    document.getElementById('cm-submit-text').textContent = 'ساخت کانفیگ';
+    document.getElementById('cm-head-icon').innerHTML = '<i class="ti ti-bolt"></i>';
   } else {
+    document.getElementById('reality-dest-field').style.display = 'none';
+    document.getElementById('manual-port-field').style.display = 'none';
     streamSection.style.display = '';
     normalNote.style.display = 'flex';
     mtNote.style.display = 'none';
@@ -4077,6 +3895,26 @@ function cmSelectTransport(val, el){
 function cmApplyProto(){
   if (cmBase === 'telproxy') {
     document.getElementById('nl-proto').value = 'mtproto';
+    return;
+  }
+  if (cmBase === 'reality') {
+    document.getElementById('nl-proto').value = 'vless-reality';
+    return;
+  }
+  if (cmBase === 'trojan-reality') {
+    document.getElementById('nl-proto').value = 'trojan-reality';
+    return;
+  }
+  if (cmBase === 'shadowsocks-xray') {
+    document.getElementById('nl-proto').value = 'shadowsocks-xray';
+    return;
+  }
+  if (cmBase === 'hysteria2') {
+    document.getElementById('nl-proto').value = 'hysteria2';
+    return;
+  }
+  if (cmBase === 'wireguard') {
+    document.getElementById('nl-proto').value = 'wireguard';
     return;
   }
   if (cmBase === 'shadowsocks') {
@@ -4182,9 +4020,13 @@ async function createLink(){
   const alpn = (isMt || isSs) ? null : (document.getElementById('nl-alpn').value || 'h2,http/1.1');
   const fingerprint = (isMt || isSs) ? null : (document.getElementById('nl-fp').value || 'chrome');
   const ss_cipher = isSs ? (document.getElementById('nl-ss-cipher').value || 'chacha20-ietf-poly1305') : null;
+  const isReality = protocol === 'vless-reality' || protocol === 'trojan-reality';
+  const reality_dest = isReality ? (document.getElementById('nl-reality-dest').value.trim() || 'www.microsoft.com:443') : null;
+  const isXcore = isReality || protocol === 'shadowsocks-xray' || protocol === 'hysteria2' || protocol === 'wireguard';
+  const manual_port = isXcore ? (document.getElementById('nl-manual-port').value || null) : null;
   try{
     const url = nodeId ? ('/api/nodes/'+nodeId+'/links') : '/api/links';
-    const r=await authF(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({label,limit_value:val||0,limit_unit:unit,expires_days:exp||0,note,sub_id,protocol,mtproto_port,mtproto_domain,mtproto_public_host,mtproto_public_port,alpn,fingerprint,ss_cipher})});
+    const r=await authF(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({label,limit_value:val||0,limit_unit:unit,expires_days:exp||0,note,sub_id,protocol,mtproto_port,mtproto_domain,mtproto_public_host,mtproto_public_port,alpn,fingerprint,ss_cipher,reality_dest,manual_port})});
     if(!r.ok){
       const d=await r.json().catch(()=>({}));
       throw new Error(d.detail||'failed');
@@ -5024,392 +4866,7 @@ async function startUpdate(){
     btn.disabled=false;btn.innerHTML='<i class="ti ti-download"></i> نصب بروزرسانی';
   }
 }
-let btpPolling = null;
-let btpHasToken = false;
-
-function btpShowStep(step){
-  ['input','vpn','select','ping','search','done'].forEach(s=>{
-    document.getElementById('btp-step-'+s).style.display = (s===step) ? '' : 'none';
-  });
-  document.getElementById('btp-start-btn').style.display = (step==='input') ? 'flex' : 'none';
-  document.getElementById('btp-continue-btn').style.display = (step==='vpn') ? 'flex' : 'none';
-  document.getElementById('btp-stop-btn').style.display = (step==='search') ? 'flex' : 'none';
-  document.getElementById('btp-cancel-btn').style.display = (step==='input'||step==='vpn'||step==='select'||step==='ping') ? 'flex' : 'none';
-  document.getElementById('btp-close-done-btn').style.display = (step==='done') ? 'flex' : 'none';
-}
-
-function btpSetStatus(icon, cls, text, spin){
-  const ic = document.getElementById('btp-status-icon');
-  const note = document.getElementById('btp-status-note');
-  ic.className = 'ti ' + icon;
-  ic.style.animation = spin ? 'spin 1s linear infinite' : '';
-  note.classList.remove('st-run','st-ok','st-err','st-warn');
-  if(cls) note.classList.add(cls);
-  document.getElementById('btp-status-text').textContent = text;
-}
-
-function btpSetPingStatus(icon, cls, text, spin){
-  const ic = document.getElementById('btp-ping-status-icon');
-  const note = document.getElementById('btp-ping-status-note');
-  ic.className = 'ti ' + icon;
-  ic.style.animation = spin ? 'spin 1s linear infinite' : '';
-  note.classList.remove('st-run','st-ok','st-err','st-warn');
-  if(cls) note.classList.add(cls);
-  document.getElementById('btp-ping-status-text').textContent = text;
-}
-
-let btpPingResults = [];
-
-function btpRenderPingList(results){
-  btpPingResults = results || [];
-  const el = document.getElementById('btp-ping-list');
-  if(!results || !results.length){
-    el.innerHTML = '<span style="font-size:11px;color:var(--t3)">در حال تست...</span>';
-    return;
-  }
-  const sorted = [...results].sort((a,b)=> (b.ok - a.ok));
-  el.innerHTML = sorted.map(r => `
-    <div style="display:flex;align-items:center;gap:8px;background:${r.ok?'rgba(34,197,94,.08)':'rgba(239,68,68,.06)'};border:1px solid ${r.ok?'rgba(34,197,94,.25)':'rgba(239,68,68,.18)'};border-radius:10px;padding:7px 11px">
-      <i class="ti ${r.ok?'ti-circle-check':'ti-clock-x'}" style="color:${r.ok?'var(--green-t)':'var(--red-t)'}"></i>
-      <span style="flex:1;font-family:ui-monospace,monospace;font-size:11px;color:var(--t1)">${esc(r.domain)}</span>
-      <span style="font-size:10px;color:${r.ok?'var(--green-t)':'var(--red-t)'}">${r.ok?'در دسترس':'Timeout'}</span>
-      ${r.ok?'':`<button class="btn btn-o" style="padding:3px 9px;font-size:10px;flex-shrink:0" onclick="btpManualCheck('${esc(r.domain)}')"><i class="ti ti-hand-click"></i> بررسی دستی</button>`}
-    </div>
-  `).join('');
-}
-
-// بعضی اینترنت‌ها موقع باز کردن مستقیم دامنه، اول هشدار «این اتصال خصوصی نیست»
-// (خطای گواهی TLS) نشون می‌دن. اگر کاربر رد بشه و به‌جای سایت واقعی به یک صفحه‌ی
-// Not Found برسه، یعنی دامنه کاملاً سالم و در دسترسه (فقط گواهی مچ نمی‌شه) —
-// پس این تست خودکار fetch نمی‌تونه تشخیصش بده و باید دستی تأیید بشه.
-function btpManualCheck(domain){
-  window.open('https://' + domain + '/', '_blank', 'noopener');
-  const wrap = document.createElement('div');
-  wrap.className = 'modal-bg';
-  wrap.style.cssText = 'display:flex;z-index:99999';
-  wrap.innerHTML = `
-    <div class="modal-v2" style="max-width:420px">
-      <div class="modal-v2-head" style="background:linear-gradient(155deg,rgba(59,130,246,.16) 0%,transparent 65%)">
-        <div class="modal-v2-icon"><i class="ti ti-shield-question"></i></div>
-        <div class="modal-v2-title">بررسی دستی ${esc(domain)}</div>
-        <div class="modal-v2-sub">اگه اول هشدار «این اتصال خصوصی نیست» اومد، روی «ادامه/Proceed» بزن. بعدش صفحه‌ای که باز شد چی نشون داد؟</div>
-      </div>
-      <div class="modal-v2-body">
-        <div class="modal-v2-footer">
-          <button class="btn btn-o" style="flex:1;justify-content:center" onclick="btpManualCheckResolve('${esc(domain)}',false,this)">چیز دیگه‌ای دید / باز نشد</button>
-          <button class="btn btn-p" style="flex:1;justify-content:center" onclick="btpManualCheckResolve('${esc(domain)}',true,this)"><i class="ti ti-circle-check"></i> به Not Found رسیدم</button>
-        </div>
-      </div>
-    </div>`;
-  document.body.appendChild(wrap);
-}
-
-function btpManualCheckResolve(domain, reachedNotFound, btnEl){
-  const wrap = btnEl.closest('.modal-bg');
-  if(wrap) wrap.remove();
-
-  const idx = btpPingResults.findIndex(r => r.domain === domain);
-  if(idx === -1) return;
-  btpPingResults[idx].ok = reachedNotFound;
-  btpPingResults[idx].manual = true;
-  btpRenderPingList(btpPingResults);
-
-  btpReachableDomains = btpPingResults.filter(r=>r.ok).map(r=>r.domain);
-  if(btpReachableDomains.length > 0){
-    btpSetPingStatus('ti-circle-check', 'st-ok', `${btpReachableDomains.length} دامنه با اینترنت تو کار می‌کنه`, false);
-    document.getElementById('btp-continue-btn').style.display = 'flex';
-    document.getElementById('btp-continue-btn').onclick = btpStartSearch;
-    document.getElementById('btp-cancel-btn').style.display = 'flex';
-  }
-  toast(reachedNotFound ? `✓ ${domain} سالم علامت خورد` : `${domain} همچنان غیرقابل‌دسترس است`, reachedNotFound ? 'ok' : 'err');
-}
-
-function btpRenderFound(result){
-  const el = document.getElementById('btp-found-list');
-  if(!result){
-    el.innerHTML = '<span style="font-size:11px;color:var(--t3)">هنوز چیزی پیدا نشده...</span>';
-    return;
-  }
-  el.innerHTML = `
-    <div style="display:flex;align-items:center;gap:8px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:10px;padding:8px 11px">
-      <i class="ti ti-circle-check" style="color:var(--green-t)"></i>
-      <span style="flex:1;font-family:ui-monospace,monospace;font-size:11px;color:var(--t1)">${esc(result.domain)}:${result.port}</span>
-    </div>
-  `;
-}
-
-function btpChangeToken(){
-  document.getElementById('btp-token').style.display = '';
-  document.getElementById('btp-token-saved-note').style.display = 'none';
-  btpHasToken = false;
-}
-
-let btpReachableDomains = [];
-let btpPingAborted = false;
-
-async function btpCheckTokenState(){
-  btpShowStep('input');
-  document.getElementById('btp-token').value = '';
-  document.getElementById('btp-port').value = '';
-  btpReachableDomains = [];
-  try{
-    const r = await authF('/api/bot-tcp-proxy/status'), d = await r.json();
-    btpHasToken = !!d.has_token;
-    document.getElementById('btp-token').style.display = btpHasToken ? 'none' : '';
-    document.getElementById('btp-token-saved-note').style.display = btpHasToken ? '' : 'none';
-
-    if(d.running){
-      btpShowStep('search');
-      btpSetStatus('ti-loader-2', 'st-run', `در حال جست‌وجو... (${d.attempts} تلاش)`, true);
-      btpRenderFound(null);
-      btpPolling = setInterval(pollBotTcpProxy, 1200);
-    } else if(d.phase === 'done' && d.result){
-      btpFinishAttach(d.result);
-    }
-  }catch(e){}
-}
-
-function btpCloseModal(){
-  clearInterval(btpPolling);
-  btpPingAborted = true;
-  closeModal('modal-bot-tcp-proxy');
-}
-
-// مرحله ۱ → مرحله ۲ (هشدار VPN)
-function startBotTcpProxy(){
-  const token = btpHasToken ? '' : document.getElementById('btp-token').value.trim();
-  const portVal = document.getElementById('btp-port').value.trim();
-  if(!btpHasToken && !token){ toast('توکن Railway را وارد کن','err'); return; }
-  if(!portVal){ toast('پورت را وارد کن','err'); return; }
-  btpShowStep('vpn');
-  document.getElementById('btp-continue-btn').onclick = btpShowSelect;
-}
-
-// مرحله ۲ → مرحله ۳: انتخاب دستی دامنه‌ها (به‌جای اسکن خودکار همه‌ی دامنه‌ها)
-let btpAllDomains = [];
-let btpSelectedDomains = [];
-
-async function btpShowSelect(){
-  btpShowStep('select');
-  const box = document.getElementById('btp-select-list');
-  box.innerHTML = '<span style="font-size:11px;color:var(--t3)">در حال دریافت لیست دامنه‌ها...</span>';
-  try{
-    const r = await authF('/api/bot-tcp-proxy/domains'), d = await r.json();
-    btpAllDomains = d.domains || [];
-  }catch(e){
-    box.innerHTML = '<span style="font-size:11px;color:var(--red-t)">خطا در دریافت لیست دامنه‌ها</span>';
-    return;
-  }
-  btpSelectedDomains = [];
-  btpRenderSelectList();
-}
-
-function btpRenderSelectList(){
-  const box = document.getElementById('btp-select-list');
-  if(!btpAllDomains.length){
-    box.innerHTML = '<span style="font-size:11px;color:var(--t3)">دامنه‌ای یافت نشد</span>';
-    return;
-  }
-  box.innerHTML = btpAllDomains.map(dm => `
-    <label style="display:flex;align-items:center;gap:8px;background:var(--inset);border:1px solid var(--card-b);border-radius:10px;padding:7px 11px;cursor:pointer">
-      <input type="checkbox" onchange="btpToggleSelectDomain('${esc(dm)}',this.checked)" ${btpSelectedDomains.includes(dm)?'checked':''}>
-      <span style="flex:1;font-family:ui-monospace,monospace;font-size:11px;color:var(--t1)">${esc(dm)}</span>
-    </label>
-  `).join('');
-  document.getElementById('btp-select-count').textContent = btpSelectedDomains.length + ' دامنه انتخاب شده';
-}
-
-function btpToggleSelectDomain(domain, checked){
-  btpSelectedDomains = btpSelectedDomains.filter(d=>d!==domain);
-  if(checked) btpSelectedDomains.push(domain);
-  document.getElementById('btp-select-count').textContent = btpSelectedDomains.length + ' دامنه انتخاب شده';
-}
-
-function btpSelectAllDomains(){
-  btpSelectedDomains = [...btpAllDomains];
-  btpRenderSelectList();
-}
-
-function btpSelectNoDomains(){
-  btpSelectedDomains = [];
-  btpRenderSelectList();
-}
-
-// تست خودکار (پینگ از مرورگر) فقط روی دامنه‌های انتخاب‌شده
-function btpSelectThenPing(){
-  if(!btpSelectedDomains.length){ toast('حداقل یک دامنه انتخاب کن','err'); return; }
-  btpStartPing(btpSelectedDomains);
-}
-
-// رد شدن کامل از اسکن: دامنه‌های انتخاب‌شده مستقیم به‌عنوان سالم در نظر گرفته می‌شن
-// و بلافاصله وارد مرحله‌ی ساخت پروکسی (جست‌وجو) می‌شیم — دقیقاً همون سناریویی که
-// کاربر با «بررسی دستی» توی مرورگر خودش قبلاً تأیید کرده.
-function btpSelectSkipScan(){
-  if(!btpSelectedDomains.length){ toast('حداقل یک دامنه انتخاب کن','err'); return; }
-  btpReachableDomains = [...btpSelectedDomains];
-  btpStartSearch();
-}
-
-// مرحله ۲ → مرحله ۳: پینگ واقعی از خودِ مرورگر کاربر (نه از سرور پنل)، یکی‌یکی
-const BTP_PING_TIMEOUT_MS = 6000;
-
-async function btpPingOneDomain(domain){
-  // fetch با mode:'no-cors' یعنی دقیقاً مثل باز کردن https://domain/ توی تب جدید مرورگر.
-  // نکته‌ی مهم: بعضی از این دامنه‌ها گواهیِ TLS نامعتبر/نامنطبق دارن (صفحه‌ی "این اتصال
-  // خصوصی نیست" توی کروم) — یعنی خودِ دامنه در دسترسه و اصلاً فیلتر نیست، فقط fetch به
-  // خاطر گواهی خیلی سریع (کمتر از چند صد میلی‌ثانیه) reject می‌شه. این را نباید Timeout
-  // حساب کرد. فقط وقتی واقعاً تا آخرِ مهلت (نزدیک ۶ ثانیه) صبر کردیم و جوابی نیومد،
-  // یعنی واقعاً فیلتر/غیرقابل‌دسترسه.
-  const ctrl = new AbortController();
-  const timer = setTimeout(()=>ctrl.abort(), BTP_PING_TIMEOUT_MS);
-  const started = performance.now();
-  try{
-    await fetch('https://' + domain + '/', { mode:'no-cors', cache:'no-store', signal: ctrl.signal });
-    clearTimeout(timer);
-    return true;
-  }catch(e){
-    clearTimeout(timer);
-    const elapsed = performance.now() - started;
-    // اگر خیلی زود شکست خورد (نه به خاطر Timeout واقعی ما)، یعنی دامنه در دسترس بوده
-    // ولی به دلیلی دیگه (مثل گواهی نامعتبر) fetch رد شده — پس این را «سالم» حساب می‌کنیم.
-    return elapsed < (BTP_PING_TIMEOUT_MS * 0.85);
-  }
-}
-
-async function btpStartPing(domainFilter){
-  btpShowStep('ping');
-  btpPingAborted = false;
-  btpSetPingStatus('ti-loader-2', 'st-run', 'در حال تست دامنه‌ها از اینترنت خودت...', true);
-  btpRenderPingList([]);
-
-  let domains = [];
-  try{
-    const r = await authF('/api/bot-tcp-proxy/domains'), d = await r.json();
-    domains = d.domains || [];
-  }catch(e){
-    toast('✗ خطا در گرفتن لیست دامنه‌ها','err');
-    btpShowStep('input');
-    return;
-  }
-
-  if(Array.isArray(domainFilter) && domainFilter.length){
-    domains = domains.filter(dm => domainFilter.includes(dm));
-  }
-  if(!domains.length){
-    toast('✗ هیچ دامنه‌ای برای تست انتخاب نشده','err');
-    btpShowStep('select');
-    return;
-  }
-
-  const results = [];
-  for(const domain of domains){
-    if(btpPingAborted) return;
-    btpSetPingStatus('ti-loader-2', 'st-run', `در حال تست... (${results.length+1}/${domains.length}) ${domain}`, true);
-    const ok = await btpPingOneDomain(domain);
-    results.push({domain, ok});
-    btpRenderPingList(results);
-  }
-  if(btpPingAborted) return;
-
-  btpReachableDomains = results.filter(r=>r.ok).map(r=>r.domain);
-  if(btpReachableDomains.length > 0){
-    btpSetPingStatus('ti-circle-check', 'st-ok', `${btpReachableDomains.length} دامنه با اینترنت تو کار می‌کنه`, false);
-    document.getElementById('btp-continue-btn').style.display = 'flex';
-    document.getElementById('btp-continue-btn').onclick = btpStartSearch;
-    document.getElementById('btp-cancel-btn').style.display = 'flex';
-  } else {
-    btpSetPingStatus('ti-alert-circle', 'st-err', 'هیچ دامنه‌ای با اینترنت تو کار نکرد', false);
-    toast('✗ هیچ‌کدام از دامنه‌ها با اینترنت تو باز نشدن','err');
-  }
-}
-
-
-// مرحله ۳ → مرحله ۴ (ساخت مکرر پروکسی تا رسیدن به یک دامنه‌ی سالم)
-async function btpStartSearch(){
-  const token = btpHasToken ? '' : document.getElementById('btp-token').value.trim();
-  const port = document.getElementById('btp-port').value.trim();
-
-  btpShowStep('search');
-  btpSetStatus('ti-loader-2', 'st-run', 'در حال اتصال به Railway...', true);
-  btpRenderFound(null);
-
-  try{
-    const r = await authF('/api/bot-tcp-proxy/start', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ token, port, reachable_domains: btpReachableDomains })
-    });
-    if(!r.ok){ const d = await r.json().catch(()=>({})); throw new Error(d.detail || 'خطا'); }
-    btpPolling = setInterval(pollBotTcpProxy, 1200);
-  }catch(e){
-    toast('✗ '+e.message,'err');
-    btpSetStatus('ti-alert-circle', 'st-err', e.message, false);
-    btpShowStep('input');
-  }
-}
-
-async function stopBotTcpProxy(){
-  const btn = document.getElementById('btp-stop-btn');
-  btn.disabled = true;
-  try{
-    await authF('/api/bot-tcp-proxy/stop', {method:'POST'});
-    toast('درخواست توقف ارسال شد','ok');
-  }catch(e){
-    toast('خطا در توقف','err');
-  }
-  btn.disabled = false;
-}
-
-async function pollBotTcpProxy(){
-  try{
-    const r = await authF('/api/bot-tcp-proxy/status'), d = await r.json();
-    if(d.running){
-      btpSetStatus('ti-loader-2', 'st-run', `در حال تلاش... (${d.attempts} تلاش)`, true);
-    }else{
-      clearInterval(btpPolling);
-      if(d.phase === 'done' && d.result){
-        btpSetStatus('ti-circle-check', 'st-ok', 'دامنه‌ی سالم پیدا شد ✓', false);
-        btpRenderFound(d.result);
-        await btpFinishAttach(d.result);
-      } else if(d.stopped_by_user){
-        btpSetStatus('ti-player-stop', 'st-warn', 'فرآیند متوقف شد', false);
-        btpShowStep('input');
-      } else if(d.error){
-        btpSetStatus('ti-alert-circle', 'st-err', d.error, false);
-        toast('✗ '+d.error,'err');
-        btpShowStep('input');
-      }
-    }
-  }catch(e){}
-}
-
-// مرحله ۴ → مرحله ۵ (اتصال خودکار به پروکسی تلگرام)
-async function btpFinishAttach(result){
-  try{
-    const r = await authF('/api/bot-tcp-proxy/attach', {method:'POST'});
-    if(!r.ok){ const d = await r.json().catch(()=>({})); throw new Error(d.detail || 'خطا'); }
-    const d = await r.json();
-    document.getElementById('btp-done-domain').textContent = `${d.result.domain}:${d.result.port}`;
-    if(d.share_link){
-      document.getElementById('btp-done-link-wrap').style.display = '';
-      document.getElementById('btp-done-link').value = d.share_link;
-      toast('پروکسی تلگرام «'+ (d.attached_link ? d.attached_link.label : '') +'» ساخته شد ✓','ok');
-    } else {
-      toast('دامنه نهایی شد، اما لینک تلگرامی برای اتصال پیدا نشد','warn');
-    }
-    btpShowStep('done');
-  }catch(e){
-    toast('✗ '+e.message,'err');
-  }
-}
-
-function btpCopyLink(){
-  const inp = document.getElementById('btp-done-link');
-  inp.select();
-  navigator.clipboard.writeText(inp.value).then(()=>toast('کپی شد ✓','ok')).catch(()=>{});
-}
-
 // ══════════════════ Zeus Proxy — کارت داخل لیست کانفیگ‌ها + مدیریت + آی‌پی‌های متصل ══════════════════
-let zpHasToken = false;
 let zpStatusInterval = null;
 let zeusStatus = null; // آخرین وضعیت دریافت‌شده از /api/zeus-proxy/status (توسط loadLinks پر می‌شود)
 
@@ -5479,12 +4936,6 @@ function refreshZeusCardOnly(d){
 }
 
 // ── مودال ساخت (فقط ساخت — بعد از ساخت، مدیریت از روی کارت لیست انجام می‌شود) ──
-function zpChangeToken(){
-  document.getElementById('zp-token').style.display = '';
-  document.getElementById('zp-token-saved-note').style.display = 'none';
-  zpHasToken = false;
-}
-
 function zpShowCreateStep(step){
   ['input','building','error'].forEach(s=>{
     document.getElementById('zp-step-'+s).style.display = (s===step ? '' : 'none');
@@ -5494,13 +4945,9 @@ function zpShowCreateStep(step){
 
 async function zpCheckTokenState(){
   zpShowCreateStep('input');
-  document.getElementById('zp-token').value = '';
   try{
     const r = await authF('/api/zeus-proxy/status'), d = await r.json();
     zeusStatus = d;
-    zpHasToken = !!d.has_token;
-    document.getElementById('zp-token').style.display = zpHasToken ? 'none' : '';
-    document.getElementById('zp-token-saved-note').style.display = zpHasToken ? '' : 'none';
     const cfg = d.config || {};
     document.getElementById('zp-cfg-traffic').value = cfg.traffic_limit_gb ?? 10;
     document.getElementById('zp-cfg-days').value    = cfg.expires_days ?? 30;
@@ -5513,9 +4960,6 @@ function zpCloseModal(){
 }
 
 async function zpStart(){
-  const token = zpHasToken ? '' : document.getElementById('zp-token').value.trim();
-  if(!zpHasToken && !token){ toast('توکن Railway را وارد کن','err'); return; }
-
   const traffic_limit_gb       = parseFloat(document.getElementById('zp-cfg-traffic').value) || 0;
   const expires_days           = parseInt(document.getElementById('zp-cfg-days').value)    || 0;
   const max_connections_per_ip = parseInt(document.getElementById('zp-cfg-maxip').value)   || 0;
@@ -5525,7 +4969,7 @@ async function zpStart(){
     const r = await authF('/api/zeus-proxy/create', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({token, traffic_limit_gb, expires_days, max_connections_per_ip})
+      body: JSON.stringify({traffic_limit_gb, expires_days, max_connections_per_ip})
     });
     const d = await r.json();
     if(!r.ok){ throw new Error(d.detail || 'ساخت پروکسی ناموفق بود'); }
@@ -5641,7 +5085,7 @@ function zpMaybeStopPolling(force){
 }
 
 async function zpDelete(){
-  if(!confirm('پروکسی Zeus حذف شود؟ TCP Proxy روی Railway هم پاک می‌شود.')) return;
+  if(!confirm('پروکسی Zeus حذف شود؟')) return;
   try{
     const r = await authF('/api/zeus-proxy/delete',{method:'POST'});
     if(!r.ok) throw new Error('حذف ناموفق');
@@ -5710,110 +5154,6 @@ async function loadUpdateLog(){
   try{const r=await authF('/api/update-log'),d=await r.json();renderUpdateLog(d.logs);}catch(e){}
 }
 
-let dgPolling = null;
-
-function dgSetStatus(icon, color, text, spin){
-  const ic = document.getElementById('dg-status-icon');
-  ic.className = 'ti ' + icon;
-  ic.style.color = color;
-  ic.style.animation = spin ? 'spin 1s linear infinite' : '';
-  document.getElementById('dg-status-text').textContent = text;
-}
-function dgToggleButtons(running){
-  document.getElementById('dg-start-btn').style.display = running ? 'none' : 'flex';
-  document.getElementById('dg-stop-btn').style.display = running ? 'flex' : 'none';
-}
-function dgChangeToken(){
-  document.getElementById('dg-token-section').style.display = '';
-  document.getElementById('dg-token-saved-section').style.display = 'none';
-}
-function dgRenderResults(results){
-  const el = document.getElementById('dg-results');
-  if(!results || !results.length){ el.innerHTML=''; return; }
-  el.innerHTML = results.map(r=>`
-    <div style="display:flex;align-items:center;gap:8px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:8px 11px">
-      <i class="ti ti-circle-check" style="color:var(--green-t)"></i>
-      <span style="flex:1;font-family:ui-monospace,monospace;font-size:11px;color:var(--t1)">${esc(r.domain)}:${r.port}</span>
-      <button class="btn btn-sm btn-g" onclick="navigator.clipboard.writeText('${esc(r.domain)}:${r.port}').then(()=>toast('کپی شد ✓','ok'))"><i class="ti ti-copy"></i></button>
-    </div>
-  `).join('');
-}
-async function dgCheckTokenState(){
-  try{
-    const r = await authF('/api/domain-gen/status'), d = await r.json();
-    document.getElementById('dg-token-section').style.display = d.has_token ? 'none' : '';
-    document.getElementById('dg-token-saved-section').style.display = d.has_token ? '' : 'none';
-    dgToggleButtons(d.running);
-    dgRenderResults(d.results || []);
-    if(d.running){
-      dgPolling = setInterval(pollDomainGen, 1500);
-      dgSetStatus('ti-loader-2','var(--accent)', `در حال ساخت... (${d.attempts} تلاش، ${(d.results||[]).length}/${d.target_count} دامنه)`, true);
-    }
-  }catch(e){}
-}
-async function startDomainGen(){
-  const tokenField = document.getElementById('dg-token');
-  const token = tokenField.style.display !== 'none' ? tokenField.value.trim() : '';
-  const port = document.getElementById('dg-port').value.trim();
-  const count = parseInt(document.getElementById('dg-count').value || '10');
-
-  const btn = document.getElementById('dg-start-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> در حال اجرا...';
-  dgSetStatus('ti-loader-2','var(--accent)','در حال اتصال به Railway...', true);
-  document.getElementById('dg-log-box').style.display = 'block';
-
-  try{
-    const r = await authF('/api/domain-gen/start', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ token, port: port || undefined, count })
-    });
-    if(!r.ok){ const d = await r.json().catch(()=>({})); throw new Error(d.detail || 'خطا'); }
-    document.getElementById('dg-token-section').style.display = 'none';
-    document.getElementById('dg-token-saved-section').style.display = '';
-    dgToggleButtons(true);
-    dgPolling = setInterval(pollDomainGen, 1500);
-  }catch(e){
-    toast('✗ '+e.message,'err');
-    dgSetStatus('ti-alert-circle','var(--red-t)', e.message, false);
-    btn.disabled = false; btn.innerHTML = '<i class="ti ti-player-play"></i> شروع ساخت';
-  }
-}
-async function stopDomainGen(){
-  const btn = document.getElementById('dg-stop-btn');
-  btn.disabled = true;
-  try{ await authF('/api/domain-gen/stop', {method:'POST'}); toast('درخواست توقف ارسال شد','ok'); }
-  catch(e){ toast('خطا در توقف','err'); }
-  btn.disabled = false;
-}
-async function pollDomainGen(){
-  try{
-    const r = await authF('/api/domain-gen/status'), d = await r.json();
-    const box = document.getElementById('dg-log-box');
-    box.innerHTML = (d.logs||[]).map(l=>`<p class="upd-log-line">[${new Date(l.time*1000).toLocaleTimeString('fa-IR')}] ${esc(l.msg)}</p>`).join('') || '<p class="upd-log-empty">لاگی موجود نیست</p>';
-    box.scrollTop = box.scrollHeight;
-    dgRenderResults(d.results || []);
-
-    if(d.running){
-      dgToggleButtons(true);
-      dgSetStatus('ti-loader-2','var(--accent)', `در حال ساخت... (${d.attempts} تلاش، ${(d.results||[]).length}/${d.target_count} دامنه)`, true);
-    }else{
-      clearInterval(dgPolling);
-      dgToggleButtons(false);
-      const btn = document.getElementById('dg-start-btn');
-      btn.disabled = false; btn.innerHTML = '<i class="ti ti-player-play"></i> شروع ساخت';
-      if(d.results && d.results.length >= d.target_count){
-        dgSetStatus('ti-circle-check','var(--green-t)', `${d.target_count} دامنه با موفقیت ساخته شد ✓`, false);
-        toast(d.target_count+' دامنه ساخته شد ✓','ok');
-      } else if(d.stopped_by_user){
-        dgSetStatus('ti-player-stop','var(--amber-t)', 'فرآیند متوقف شد', false);
-      } else if(d.error){
-        dgSetStatus('ti-alert-circle','var(--red-t)', d.error, false);
-      }
-    }
-  }catch(e){}
-}
-
 function renderUpdateLog(logs){
   const box=document.getElementById('update-log-box');
   if(!logs||!logs.length){box.innerHTML='<p class="upd-log-empty">لاگی موجود نیست</p>';return}
@@ -5855,185 +5195,6 @@ async function loadUpdateHistory(){
     }).join('');
   }catch(e){console.error(e)}
 }
-let autoDomainPolling = null;
-
-async function autoGetMtprotoDomain(){
-  // اول چک کن توکن ذخیره شده یا نه
-  try{
-    const r = await authF('/api/bot-tcp-proxy/status'), d = await r.json();
-    if(!d.has_token){
-      document.getElementById('auto-domain-token-wrap').style.display = 'block';
-      document.getElementById('auto-domain-status').innerHTML = '<i class="ti ti-key"></i> برای دریافت خودکار دامنه، ابتدا توکن Railway را وارد کن.';
-      return;
-    }
-    startAutoDomainFetch();
-  }catch(e){
-    toast('خطا در بررسی وضعیت توکن','err');
-  }
-}
-
-async function submitAutoDomainToken(){
-  const token = document.getElementById('auto-domain-token').value.trim();
-  if(!token){ toast('توکن را وارد کن','err'); return; }
-  document.getElementById('auto-domain-token-wrap').style.display = 'none';
-  startAutoDomainFetch(token);
-}
-
-async function startAutoDomainFetch(token){
-  const btn = document.getElementById('auto-domain-btn');
-  const statusEl = document.getElementById('auto-domain-status');
-  btn.disabled = true;
-  btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> در حال دریافت...';
-  statusEl.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> در حال دریافت دامنه از Railway...';
-
-  try{
-    const body = { mode: 'blacklist' };
-    if(token) body.token = token;
-    const r = await authF('/api/bot-tcp-proxy/start', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(body)
-    });
-    if(!r.ok){
-      const d = await r.json().catch(()=>({}));
-      throw new Error(d.detail || 'خطا در شروع فرآیند');
-    }
-    autoDomainPolling = setInterval(pollAutoDomain, 1000);
-  }catch(e){
-    statusEl.innerHTML = '<i class="ti ti-alert-circle" style="color:var(--red-t)"></i> ✗ '+esc(e.message);
-    btn.disabled = false;
-    btn.innerHTML = '<i class="ti ti-bolt"></i> دریافت دامنه';
-  }
-}
-
-async function pollAutoDomain(){
-  try{
-    const r = await authF('/api/bot-tcp-proxy/status'), d = await r.json();
-    const btn = document.getElementById('auto-domain-btn');
-    const statusEl = document.getElementById('auto-domain-status');
-
-    if(d.running){
-      statusEl.innerHTML = `<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> در حال جستجوی دامنه... (${d.attempts} تلاش)`;
-      return;
-    }
-
-    clearInterval(autoDomainPolling);
-    btn.disabled = false;
-    btn.innerHTML = '<i class="ti ti-bolt"></i> دریافت خودکار دامنه';
-
-    if(d.result){
-      // پر کردن خودکار فیلدها بدون دخالت کاربر
-      document.getElementById('nl-mtproto-domain').value = d.result.domain;
-      document.getElementById('nl-mtproto-port').value = ''; // پورت داخلی همان پیش‌فرض می‌ماند؛ این پورت، پورت عمومی TCP است
-      statusEl.innerHTML = `<i class="ti ti-circle-check" style="color:var(--green-t)"></i> دامنه دریافت شد: <b>${esc(d.result.domain)}:${d.result.port}</b>`;
-      toast('دامنه و پورت خودکار دریافت شد ✓','ok');
-    } else if(d.error){
-      statusEl.innerHTML = '<i class="ti ti-alert-circle" style="color:var(--red-t)"></i> ✗ '+esc(d.error);
-      toast('✗ '+d.error,'err');
-    }
-  }catch(e){}
-}
-
-function openDomainScanModal(){
-  dsDomains = [];
-  dsRenderChips();
-  document.getElementById('ds-token-section').style.display = '';
-  openModal('modal-domain-scan');
-  authF('/api/bot-tcp-proxy/status').then(r=>r.json()).then(d=>{
-    if(d.has_token) document.getElementById('ds-token-section').style.display = 'none';
-  }).catch(()=>{});
-}
-async function autoAssignMtprotoDomain(){
-  const btn = document.getElementById('auto-domain-btn');
-  const statusEl = document.getElementById('auto-domain-status');
-  btn.disabled = true;
-  btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> در حال دریافت...';
-  statusEl.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> در حال اتصال به Railway و دریافت دامنه...';
-
-  try{
-    const r = await authF('/api/bot-tcp-proxy/start', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ mode:'blacklist' }) // توکن ذخیره‌شده خودکار استفاده می‌شود
-    });
-    if(!r.ok){
-      const d = await r.json().catch(()=>({}));
-      throw new Error(d.detail || 'خطا در شروع فرآیند');
-    }
-    autoDomainPolling = setInterval(pollAutoDomain, 1200);
-  }catch(e){
-    statusEl.innerHTML = '<i class="ti ti-alert-circle" style="color:var(--red-t)"></i> ✗ '+e.message;
-    btn.disabled = false;
-    btn.innerHTML = '<i class="ti ti-bolt"></i> دریافت خودکار دامنه';
-  }
-}
-
-
-function dsAddDomain(){
-  const inp = document.getElementById('ds-domain-inp');
-  const v = inp.value.trim().toLowerCase().replace(/\.$/, '');
-  if(v && !dsDomains.includes(v)) dsDomains.push(v);
-  inp.value = '';
-  document.querySelectorAll('#modal-domain-scan .cm-opt').forEach(o=>o.classList.remove('sel')); // جدید
-  dsRenderChips();
-}
-function dsRemoveDomain(d){
-  dsDomains = dsDomains.filter(x=>x!==d);
-  dsRenderChips();
-}
-function dsRenderChips(){
-  document.getElementById('ds-domain-chips').innerHTML = dsDomains.map(d=>
-    `<span class="cm-pill active" style="cursor:pointer" onclick="dsRemoveDomain('${d}')">${d} <i class="ti ti-x" style="font-size:10px"></i></span>`
-  ).join('') || '<span style="font-size:10.5px;color:var(--t3)">هنوز دامنه‌ای اضافه نشده</span>';
-}
-async function startDomainScan(){
-  if(!dsDomains.length){ toast('حداقل یک دامنه اضافه کن','err'); return; }
-  const tokenField = document.getElementById('ds-token');
-  const token = tokenField.style.display !== 'none' ? tokenField.value.trim() : '';
-  const btn = document.getElementById('ds-start-btn');
-  btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> در حال اجرا...';
-  document.getElementById('ds-log-box').style.display = 'block';
-  try{
-    const r = await authF('/api/bot-tcp-proxy/start', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ token, mode:'whitelist', target_domains: dsDomains })
-    });
-    if(!r.ok){ const d = await r.json().catch(()=>({})); throw new Error(d.detail || 'خطا'); }
-    document.getElementById('ds-stop-btn').style.display = 'flex';
-    dsPolling = setInterval(pollDomainScan, 1500);
-  }catch(e){
-    toast('✗ '+e.message,'err');
-    btn.disabled = false; btn.innerHTML = '<i class="ti ti-player-play"></i> شروع اسکن';
-  }
-}
-async function stopDomainScan(){
-  await authF('/api/bot-tcp-proxy/stop', {method:'POST'});
-  toast('درخواست توقف ارسال شد','ok');
-}
-async function pollDomainScan(){
-  try{
-    const r = await authF('/api/bot-tcp-proxy/status'), d = await r.json();
-    const box = document.getElementById('ds-log-box');
-    box.innerHTML = (d.logs||[]).map(l=>`<p class="upd-log-line">[${new Date(l.time*1000).toLocaleTimeString('fa-IR')}] ${esc(l.msg)}</p>`).join('') || '<p class="upd-log-empty">لاگی موجود نیست</p>';
-    box.scrollTop = box.scrollHeight;
-    const txt = document.getElementById('ds-status-text');
-    if(d.running){
-      txt.textContent = `در حال جستجو... (${d.attempts} تلاش)`;
-    } else {
-      clearInterval(dsPolling);
-      document.getElementById('ds-stop-btn').style.display = 'none';
-      const btn = document.getElementById('ds-start-btn');
-      btn.disabled = false; btn.innerHTML = '<i class="ti ti-player-play"></i> شروع اسکن';
-      if(d.result){
-        txt.textContent = `پیدا شد: ${d.result.domain}:${d.result.port}`;
-        toast('دامنه پیدا شد: '+d.result.domain+':'+d.result.port,'ok');
-      } else if(d.error){
-        txt.textContent = d.error;
-      }
-    }
-  }catch(e){}
-}
-// آدرس Worker رو بعد از دیپلوی اینجا بذار (بخش ۳)
-const SUGGEST_WORKER_URL = 'https://railway-tcp.arvin341az.workers.dev/suggest';
-
 function openSuggestModal(prefill){
   document.getElementById('sg-domain').value = prefill || '';
   document.getElementById('sg-note').value = '';
