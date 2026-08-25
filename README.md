@@ -189,7 +189,7 @@ Until setup is complete, **every route redirects to `/setup`** and the API refus
 | Shadowsocks | AEAD (aes-256-gcm) | Same as VLESS |
 | MTProto | Official MTProxy binary | Listens on its own TCP port directly (8500–8600 opened by installer) |
 
-> 💡 **TLS tip:** share links use your configured public host + TLS port (default `443`). For automatic certificates put [Caddy](https://caddyserver.com) or nginx in front of the panel port, or terminate TLS at your router/firewall.
+> 💡 **TLS tip:** by default the panel itself serves **HTTPS/WSS with a self-signed certificate** on its own port, so all generated configs work out of the box (links include `allowInsecure=1`). If you prefer a real certificate, put [Caddy](https://caddyserver.com) or nginx in front of the panel and run `sudo rvg tls off` — links will then use your TLS port (default `443`) without `allowInsecure`.
 
 <br/>
 
@@ -301,7 +301,8 @@ Runtime config lives in **`/etc/rvg.conf`** (managed by `rvg` CLI). Everything c
 |---|---|---|
 | `PORT` | Panel listen port | `8080` |
 | `RVG_PUBLIC_HOST` | Public domain/IP used in generated links | set via wizard |
-| `PUBLIC_PORT` | TLS port advertised in links | `443` |
+| `PUBLIC_PORT` | Explicit TLS port advertised in links (empty = follow the real panel port when internal TLS is on) | auto |
+| `RVG_TLS` | Internal panel TLS: `1` = self-signed HTTPS/WSS served by the panel itself, `0` = external terminator (Caddy/nginx) | `1` |
 | `DATA_DIR` | Persistent data directory | `/var/lib/rvg` |
 | `ADMIN_PASSWORD` | Pre-set admin password (skips wizard password step) | — |
 | `SECRET_KEY` | Fixed internal secret (auto-generated otherwise) | random |
@@ -313,7 +314,8 @@ CLI shortcuts:
 ```bash
 sudo rvg port 9000          # change panel port
 sudo rvg host panel.example.com
-sudo rvg public-port 8443
+sudo rvg public-port 8443   # explicit link port (e.g. behind a TLS terminator)
+sudo rvg tls off            # switch to external TLS (Caddy/nginx) + restart
 sudo rvg password NewStrongPass
 sudo rvg phone-home off     # default: fully private
 sudo rvg firewall           # (re-)open required ports

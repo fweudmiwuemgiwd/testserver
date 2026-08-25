@@ -35,8 +35,8 @@ The wizard collects:
 |---|---|---|
 | Admin password | Dashboard login (min 6 chars, strength meter shown) | — |
 | Public host | Domain or IP used inside generated proxy links | server IP |
-| TLS port | Port advertised in links (where your TLS terminator listens) | 443 |
-| Panel port | HTTP port of this app (**requires service restart**) | 8080 |
+| Config port | Port advertised in links — auto-synced to the panel port (internal TLS) or your terminator's port (external TLS) | panel port |
+| Panel port | HTTPS port of this app (**requires service restart**) | 8080 |
 | Phone-home | Optional announcements/support contact — off = fully private | off |
 
 Everything can be changed later from the dashboard or CLI.
@@ -87,7 +87,8 @@ Common tasks:
 ```bash
 sudo rvg port 9000              # change panel port + restart
 sudo rvg host panel.example.com # change public address + restart
-sudo rvg public-port 8443       # TLS port used in generated links + restart
+sudo rvg public-port 8443       # explicit TLS port in links (empty = follow panel port)
+sudo rvg tls off                # disable internal self-signed TLS (Caddy/nginx in front)
 sudo rvg password NewPass123    # reset admin password (kills sessions)
 sudo rvg phone-home off         # disable any central-server contact (default)
 ```
@@ -98,7 +99,8 @@ Environment variables understood by the app itself:
 |---|---|
 | `PORT` | Panel listen port (wins over state file) |
 | `RVG_PUBLIC_HOST` | Public host (wins over state file) |
-| `PUBLIC_PORT` | TLS port in links |
+| `PUBLIC_PORT` | Explicit TLS port in links |
+| `RVG_TLS=0` | Disable internal self-signed TLS — external terminator expected |
 | `ADMIN_PASSWORD` | Pre-set admin password at first run |
 | `SECRET_KEY` | Fixed internal secret instead of per-install random |
 | `RVG_DISABLE_LOGS=1` | Start with logging disabled |
@@ -246,10 +248,18 @@ ss -tlnp | grep -E '8080|mtproto'
 
 ---
 
-## 10. TLS / Reverse Proxy (recommended)
+## 10. TLS / Reverse Proxy (optional)
 
-Generated share links point clients to `<public-host>:<public-port>` over TLS.
-Put a TLS terminator in front of the panel so those links work out of the box.
+By default the panel serves **HTTPS/WSS itself with a self-signed certificate** on
+its own port, so generated links work out of the box (clients need
+`allowInsecure=1`, which the panel adds automatically).
+
+If you want a real/trusted certificate, terminate TLS in front of the panel and
+switch the panel to external-TLS mode:
+
+```bash
+sudo rvg tls off && sudo rvg host panel.example.com && sudo rvg public-port 443
+```
 
 ### Caddy (automatic certificates) — recommended
 
@@ -258,8 +268,6 @@ panel.example.com {
     reverse_proxy 127.0.0.1:8080
 }
 ```
-
-Then set: `sudo rvg host panel.example.com && sudo rvg public-port 443`.
 
 ### nginx
 
@@ -289,11 +297,11 @@ MTProto ports are raw TCP — they must be reachable directly (no proxy needed).
 
 | Symptom | Cause / Fix |
 |---|---|
-| Browser can't connect | Service down? `sudo rvg status`. Firewall? `sudo rvg firewall`. Cloud provider security group must allow the port too. |
+| Browser can't connect | Service down? `sudo rvg status`. Firewall? `sudo rvg firewall`. Cloud provider security group must allow the port too. With the default internal TLS the browser shows a self-signed warning once — accept it. |
 | `Address already in use` | Another app owns 8080 → `sudo rvg port 9090` |
 | Locked out / forgot password | `sudo rvg password NewStrongPass` |
 | Links show wrong domain/IP | `sudo rvg host your-domain.com` |
-| Links use wrong TLS port | `sudo rvg public-port 443` |
+| Links use wrong port | Internal TLS (default): links follow the real panel port automatically. Behind Caddy/nginx: `sudo rvg tls off && sudo rvg public-port 443` |
 | MTProto link dead | Instance port blocked → `sudo rvg firewall`; check link's port in dashboard |
 | Service flapping | `journalctl -u rvg -n 100 --no-pager` |
 | Update failed mid-way | Restore newest `pre-update-*.tar.gz` (see §4) |

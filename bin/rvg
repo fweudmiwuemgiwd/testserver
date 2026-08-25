@@ -13,6 +13,13 @@
 #   port N                    Change panel port          (restarts service)
 #   host ADDR                 Set public domain/IP       (restarts service)
 #   public-port N             Set TLS port in links      (restarts service)
+#                             (empty/auto = follow the real panel port when
+#                              internal TLS is enabled)
+#   tls on|off                Internal TLS of the panel itself:
+#                               on  = panel serves HTTPS/WSS with a self-signed
+#                                     certificate (default; links get allowInsecure=1)
+#                               off = Caddy/nginx/router terminates TLS in front
+#                                     of the panel (links use public-port, default 443)
 #   password NEWPASS          Reset admin password
 #   logs-off | logs-on        Disable / enable all logging
 #   phone-home on|off         Opt in/out of central server contact
@@ -134,7 +141,7 @@ cmd_port() {
   set_conf_port "$1"
   json_patch port "$1"
   systemctl restart "${SERVICE_NAME}.service"
-  ok "Panel port changed to $1 and service restarted → http://<host>:$1/"
+  ok "Panel port changed to $1 and service restarted (default URL: https://<host>:$1/ — self-signed certificate)"
 }
 
 cmd_host() {
@@ -151,8 +158,32 @@ cmd_public_port() {
   [[ "${1:-}" =~ ^[0-9]+$ ]] && (( 1 <= $1 && $1 <= 65535 )) || die "usage: rvg public-port <1-65535>"
   need_root public-port
   json_patch public_port "$1"
+  json_patch public_port_auto false
   systemctl restart "${SERVICE_NAME}.service"
   ok "TLS port used in share links set to $1 (service restarted)"
+}
+
+cmd_tls() {
+  case "${1:-}" in
+    on)
+      need_root tls
+      json_patch tls true
+      systemctl restart "${SERVICE_NAME}.service"
+      ok "Internal TLS ENABLED — panel serves HTTPS/WSS with a self-signed certificate."
+      info "Share links now point to the panel port and include allowInsecure=1."
+      ;;
+    off)
+      need_root tls
+      json_patch tls false
+      systemctl restart "${SERVICE_NAME}.service"
+      ok "Internal TLS DISABLED — put Caddy/nginx (real certificate) in front of the panel."
+      info "Share links use the public-port (default 443). Example Caddyfile:"
+      echo "    your.domain.com {"
+      echo "        reverse_proxy 127.0.0.1:${PORT}"
+      echo "    }"
+      ;;
+    *) die "usage: rvg tls on|off" ;;
+  esac
 }
 
 cmd_password() {
@@ -218,6 +249,8 @@ cmd_info() {
   local running="no"; systemctl is-active --quiet "${SERVICE_NAME}.service" && running="yes"
   local host=""; [[ -f "$CONF_FILE" ]] && host=$(grep '^RVG_PUBLIC_HOST=' "$CONF_FILE" | cut -d= -f2-) 
   local state_host=""; [[ -f "$STATE_FILE" ]] && state_host=$("$PYTHON" -c "import json;print(json.load(open('$STATE_FILE',encoding='utf-8')).get('host') or '')" 2>/dev/null || true)
+  local tls="on (self-signed)"; [[ -f "$STATE_FILE" ]] && tls=$("$PYTHON" -c "import json;d=json.load(open('$STATE_FILE',encoding='utf-8'));print('off (external TLS terminator)' if d.get('tls') is False else 'on (self-signed)')" 2>/dev/null || echo "$tls")
+  local scheme="https"; [[ "$tls" == off* ]] && scheme="http"
   echo ""
   echo "  RVG Gateway · Self-Hosted Edition"
   echo "  ─────────────────────────────────────────────"
@@ -225,8 +258,9 @@ cmd_info() {
   printf "  %-18s %s\n" "App directory:"   "$APP_DIR"
   printf "  %-18s %s\n" "Data directory:"  "$DATA_DIR"
   printf "  %-18s %s\n" "Backups:"         "$BACKUP_DIR"
-  printf "  %-18s %s\n" "Panel URL:"       "http://<server-ip>:$PORT/  (setup: /setup)"
+  printf "  %-18s %s\n" "Panel URL:"       "${scheme}://<server-ip>:$PORT/  (setup: /setup)"
   printf "  %-18s %s\n" "Public host:"     "${state_host:-${host:-not configured}}"
+  printf "  %-18s %s\n" "Internal TLS:"    "$tls"
   printf "  %-18s %s\n" "Service:"        "$(systemctl is-active ${SERVICE_NAME} 2>/dev/null) (enabled: $(systemctl is-enabled ${SERVICE_NAME} 2>/dev/null))"
   printf "  %-18s %s\n" "Running now:"     "$running"
   echo ""
@@ -314,6 +348,7 @@ case "${1:-help}" in
   port)        shift; cmd_port "$@" ;;
   host)        shift; cmd_host "$@" ;;
   public-port) shift; cmd_public_port "$@" ;;
+  tls)         shift; cmd_tls "$@" ;;
   password)    shift; cmd_password "$@" ;;
   logs-off)    cmd_logs_off ;;
   logs-on)     cmd_logs_on ;;

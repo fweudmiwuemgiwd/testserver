@@ -113,11 +113,23 @@ def _get_or_create_secret() -> str:
 
 _env_public_host = os.environ.get("RVG_PUBLIC_HOST", "").strip()
 
+def _resolve_tls_from_env():
+    """RVG_TLS=0/false/off → پنل HTTP ساده (برای وقتی Caddy/nginx جلوی پنل TLS واقعی
+    می‌سازد). RVG_TLS=1/true/on یا نامشخص → خودِ پنل با گواهی self-signed مستقیماً
+    HTTPS/WSS سرو می‌کند تا لینک‌های security=tls از همان ابتدا کار کنند."""
+    raw = os.environ.get("RVG_TLS", "").strip().lower()
+    if raw in ("0", "false", "off", "no"):
+        return False
+    return True  # پیش‌فرض self-hosted: TLS داخلی فعال
+
 CONFIG = {
     "port": int(os.environ.get("PORT", DEFAULT_PORT)),
     "secret": _get_or_create_secret(),
     "host": _env_public_host or "localhost",
-    "public_port": int(os.environ.get("PUBLIC_PORT", DEFAULT_PUBLIC_PORT)),
+    # None یعنی «خودکار»: پورت لینک‌ها از پورت واقعی پنل پیروی می‌کند (حالت TLS
+    # داخلی) یا ۴۴۳ در نظر گرفته می‌شود (حالت TLS خارجی). مقدار عددی = انتخاب صریح ادمین.
+    "public_port": int(os.environ["PUBLIC_PORT"]) if os.environ.get("PUBLIC_PORT", "").strip() else None,
+    "tls": _resolve_tls_from_env(),
     "phone_home": os.environ.get("RVG_PHONE_HOME", "").strip().lower() in ("1", "true", "yes"),
     "disable_logging": os.environ.get("RVG_DISABLE_LOGS", "").strip().lower() in ("1", "true", "yes"),
 }
@@ -141,6 +153,35 @@ def apply_logging_state():
 
 
 apply_logging_state()
+
+
+def _peek_startup_settings():
+    """قبل از بایند شدن uvicorn، تنظیمات ماندگارِ مرتبط با شبکه (tls/port/public_port)
+    را به‌صورت همگام از فایل state می‌خوانیم تا تصمیم TLS درست گرفته شود؛
+    متغیرهای محیطی همچنان اولویت دارند. بقیه‌ی state بعداً در load_state() بارگذاری می‌شود."""
+    if "RVG_TLS" in os.environ and "PORT" in os.environ and "PUBLIC_PORT" in os.environ:
+        return
+    try:
+        if not DATA_FILE.exists():
+            return
+        data = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+        if "RVG_TLS" not in os.environ and "tls" in data:
+            CONFIG["tls"] = bool(data.get("tls"))
+        if "PORT" not in os.environ and data.get("port"):
+            try:
+                CONFIG["port"] = int(data["port"])
+            except (TypeError, ValueError):
+                pass
+        if "PUBLIC_PORT" not in os.environ:
+            if data.get("public_port_auto"):
+                CONFIG["public_port"] = None
+            elif data.get("public_port"):
+                try:
+                    CONFIG["public_port"] = int(data["public_port"])
+                except (TypeError, ValueError):
+                    pass
+    except Exception as e:
+        logger.warning(f"Could not peek startup settings: {e}")
 
 
 async def load_state():
@@ -167,11 +208,27 @@ async def load_state():
                     CONFIG["port"] = int(data["port"])
                 except (TypeError, ValueError):
                     pass
-            if "PUBLIC_PORT" not in os.environ and data.get("public_port"):
+            # پورت عمومی لینک‌ها — None یعنی «خودکار» (از پورت واقعی پنل یا ۴۴۳
+            # بسته به حالت TLS پیروی می‌شود). متغیر محیطی PUBLIC_PORT همیشه اولویت دارد.
+            if "PUBLIC_PORT" in os.environ:
+                pass  # قبلاً در CONFIG ست شده
+            elif "public_port_auto" in data:
+                # فرمت جدید: صریحاً ذخیره شده که مقدار خودکار است یا نه
+                CONFIG["public_port"] = (
+                    int(data["public_port"])
+                    if not data.get("public_port_auto") and data.get("public_port")
+                    else None
+                )
+            else:
+                # فرمت قدیمی (نسخه‌های قبل): public_port=443 همیشه مقدار پیش‌فرضِ
+                # هاردکد بوده نه انتخاب ادمین → فقط اگر چیز دیگری باشد محترم شمرده می‌شود.
                 try:
-                    CONFIG["public_port"] = int(data["public_port"])
+                    legacy_pp = int(data.get("public_port") or 0)
                 except (TypeError, ValueError):
-                    pass
+                    legacy_pp = 0
+                CONFIG["public_port"] = legacy_pp if legacy_pp and legacy_pp != DEFAULT_PUBLIC_PORT else None
+            if "RVG_TLS" not in os.environ and "tls" in data:
+                CONFIG["tls"] = bool(data.get("tls"))
             if "RVG_PHONE_HOME" not in os.environ:
                 CONFIG["phone_home"] = bool(data.get("phone_home", False))
             apply_logging_state()
@@ -196,6 +253,8 @@ async def save_state():
                 "host": CONFIG.get("host"),
                 "port": CONFIG.get("port"),
                 "public_port": CONFIG.get("public_port"),
+                "public_port_auto": CONFIG.get("public_port") is None,
+                "tls": bool(CONFIG.get("tls", True)),
                 "phone_home": bool(CONFIG.get("phone_home")),
                 "saved_at": datetime.now().isoformat(),
             }
@@ -362,9 +421,10 @@ async def startup():
     log_activity("system", "سرور راه‌اندازی شد", "ok")
     logger.info(f"RVG Gateway v{get_current_version()} started on port {CONFIG['port']}")
     if not is_initialized():
+        scheme = "https" if panel_tls_enabled() else "http"
         logger.info(
-            "Setup required — open http://<server-ip>:%d/setup to configure the panel",
-            CONFIG["port"],
+            "Setup required — open %s://<server-ip>:%d/setup to configure the panel",
+            scheme, CONFIG["port"],
         )
 
 async def _predownload_xcore_binary():
@@ -587,6 +647,41 @@ def get_host() -> str:
     Setup Wizard خوانده می‌شود (جایگزین RAILWAY_PUBLIC_DOMAIN در نسخه‌ی self-hosted)."""
     return CONFIG.get("host") or "localhost"
 
+
+def panel_tls_enabled() -> bool:
+    """True یعنی خود پنل با گواهی self-signed مستقیماً HTTPS/WSS سرو می‌کند
+    (پیش‌فرض self-hosted). False یعنی TLS خارجی (Caddy/nginx/روتر) جلوی پنل است."""
+    return bool(CONFIG.get("tls", True))
+
+
+def effective_public_port() -> int:
+    """پورتی که کلاینت‌ها باید برای ترنسپورت‌های سروشده توسط پنل (ws/xhttp/ss) شماره
+    بگیرند.
+      • حالت TLS داخلی: همان پورت واقعی پنل — چون تونل‌ها روی همین پورت سرو می‌شوند.
+        (اگر ادمین صریحاً public_port ست کرده باشد — مثلاً با DNAT ۴۴۳→پورت پنل — همان محترم است.)
+      • حالت TLS خارجی: public_port ادمین، وگرنه ۴۴۳ (ترمینیتور معمول)."""
+    pp = CONFIG.get("public_port")
+    if panel_tls_enabled():
+        try:
+            if pp and int(pp):
+                return int(pp)
+        except (TypeError, ValueError):
+            pass
+        return int(CONFIG.get("port") or DEFAULT_PORT)
+    try:
+        return int(pp) if pp else DEFAULT_PUBLIC_PORT
+    except (TypeError, ValueError):
+        return DEFAULT_PUBLIC_PORT
+
+
+def public_base_url() -> str:
+    """اسکیم + آدرس پایه‌ی عمومی برای URL های اشتراک (sub / p / sub-group)."""
+    host = get_host()
+    port = effective_public_port()
+    netloc = f"{host}:{port}" if port != 443 else host
+    return f"https://{netloc}"
+
+
 def generate_uuid() -> str:
     h = secrets.token_hex(16)
     return f"{h[:8]}-{h[8:12]}-{h[12:16]}-{h[16:20]}-{h[20:32]}"
@@ -598,7 +693,11 @@ def generate_share_link(uuid: str, host: str, remark: str = "RVG", protocol: str
     link = LINKS.get(uuid) or {}
     alpn = link.get("alpn", "h2")
     fp = link.get("fingerprint", "chrome")
-    pub_port = int(CONFIG.get("public_port") or DEFAULT_PUBLIC_PORT)
+    # پورت/امنیت لینک‌های سروشده توسط پنل (ws/xhttp/ss):
+    #   TLS داخلی (self-signed) → پورت واقعی پنل + allowInsecure=1 تا کلاینت‌ها
+    #   گواهی خودامضا را رد نکنند.  TLS خارجی → پورت ترمینیتور (پیش‌فرض ۴۴۳).
+    pub_port = effective_public_port()
+    insecure = "1" if panel_tls_enabled() else None
 
     if protocol == "mtproto":
         secret = link.get("mtproto_secret")
@@ -620,7 +719,16 @@ def generate_share_link(uuid: str, host: str, remark: str = "RVG", protocol: str
     if protocol == "shadowsocks":
         cipher = link.get("ss_cipher", DEFAULT_CIPHER)
         password = link.get("ss_password", "")
-        return generate_ss_link(host, pub_port, cipher, password, remark)
+        # v2ray-plugin گزینه‌ی allowInsecure ندارد؛ با self-signed باید گواهی pin شود
+        # (certRaw). اگر گواهی هنوز ساخته نشده/خوانا نیست، بدون certRaw تولید می‌شود.
+        plugin_extra = ""
+        if panel_tls_enabled():
+            try:
+                import tlscert
+                plugin_extra = f"certRaw={tlscert.cert_der_base64()}"
+            except Exception as exc:
+                logger.warning(f"SS: certRaw در لینک قرار نگرفت ({exc})")
+        return generate_ss_link(host, pub_port, cipher, password, remark, plugin_extra=plugin_extra)
 
     if protocol == "vless-reality":
         r_port = link.get("xcore_port")
@@ -686,6 +794,8 @@ def generate_share_link(uuid: str, host: str, remark: str = "RVG", protocol: str
             "security": "tls", "type": "ws", "host": host,
             "path": "/trojan-ws", "sni": host, "fp": fp, "alpn": alpn,
         }
+        if insecure:
+            params["allowInsecure"] = insecure
         query = "&".join(f"{k}={quote(str(v))}" for k, v in params.items())
         return f"trojan://{uuid}@{host}:{pub_port}?{query}#{quote(remark)}"
 
@@ -696,6 +806,8 @@ def generate_share_link(uuid: str, host: str, remark: str = "RVG", protocol: str
             "security": "tls", "type": "xhttp", "mode": mode, "host": host,
             "path": path, "sni": host, "fp": fp, "alpn": alpn,
         }
+        if insecure:
+            params["allowInsecure"] = insecure
         query = "&".join(f"{k}={quote(str(v))}" for k, v in params.items())
         return f"trojan://{uuid}@{host}:{pub_port}?{query}#{quote(remark)}"
 
@@ -711,6 +823,8 @@ def generate_share_link(uuid: str, host: str, remark: str = "RVG", protocol: str
             "fp": fp,
             "alpn": alpn,
         }
+        if insecure:
+            params["allowInsecure"] = insecure
     else:
         mode = protocol.replace("xhttp-", "")
         path = f"/xhttp-siz10/{mode}/{uuid}"
@@ -725,6 +839,8 @@ def generate_share_link(uuid: str, host: str, remark: str = "RVG", protocol: str
             "fp": fp,
             "alpn": alpn,
         }
+        if insecure:
+            params["allowInsecure"] = insecure
     query = "&".join(f"{k}={quote(str(v))}" for k, v in params.items())
     return f"vless://{uuid}@{host}:{pub_port}?{query}#{quote(remark)}"
 
@@ -1010,8 +1126,8 @@ async def _create_sub_core(body: dict) -> dict:
     return {
         "sub_id": sub_id,
         **SUBS[sub_id],
-        "public_url": f"https://{host}/p/{uuid_key}",
-        "sub_url": f"https://{host}/sub-group/{uuid_key}",
+        "public_url": f"{public_base_url()}/p/{uuid_key}",
+        "sub_url": f"{public_base_url()}/sub-group/{uuid_key}",
     }
 
 @app.post("/api/subs")
@@ -1051,8 +1167,8 @@ async def list_subs(_=Depends(require_auth)):
             "active_count": active_count + len(foreign_links),
             "total_used_bytes": total_used,
             "total_used_fmt": fmt_bytes(total_used),
-            "public_url": f"https://{host}/p/{s['uuid_key']}",
-            "sub_url": f"https://{host}/sub-group/{s['uuid_key']}",
+            "public_url": f"{public_base_url()}/p/{s['uuid_key']}",
+            "sub_url": f"{public_base_url()}/sub-group/{s['uuid_key']}",
         })
     result.sort(key=lambda x: x["created_at"], reverse=True)
     return {"subs": result}
@@ -1224,7 +1340,11 @@ async def setup_status():
     return {
         "required": not is_initialized(),
         "port": CONFIG["port"],
-        "public_port": CONFIG.get("public_port", DEFAULT_PUBLIC_PORT),
+        # پورت پیشنهادی برای «پورت لینک‌ها»: در حالت TLS داخلی همان پورت پنل است
+        # (چون تونل‌ها روی همان پورت سرو می‌شوند)؛ در حالت TLS خارجی ۴۴۳.
+        "public_port": effective_public_port(),
+        "public_port_explicit": CONFIG.get("public_port") is not None,
+        "tls": panel_tls_enabled(),
         "host": "" if CONFIG["host"] == "localhost" else CONFIG["host"],
     }
 
@@ -1250,10 +1370,24 @@ async def run_setup(request: Request):
 
     try:
         port = int(body.get("port") or CONFIG["port"])
-        public_port = int(body.get("public_port") or DEFAULT_PUBLIC_PORT)
     except (TypeError, ValueError):
         raise HTTPException(status_code=400, detail="پورت نامعتبر است")
-    if not (1 <= port <= 65535 and 1 <= public_port <= 65535):
+
+    # public_port خالی/ناموجود = خودکار → از پورت واقعی پنل پیروی می‌کند
+    # (حالت TLS داخلی). مقدار صریح فقط وقتی معنا دارد که ترمینیتور TLS جداگانه
+    # (Caddy/nginx یا DNAT) روی آن پورت سرو می‌کند.
+    raw_pp = body.get("public_port")
+    if raw_pp in (None, ""):
+        public_port = None
+    else:
+        try:
+            public_port = int(raw_pp)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="پورت نامعتبر است")
+        if not (1 <= public_port <= 65535):
+            raise HTTPException(status_code=400, detail="پورت باید بین ۱ تا ۶۵۵۳۵ باشد")
+
+    if not (1 <= port <= 65535):
         raise HTTPException(status_code=400, detail="پورت باید بین ۱ تا ۶۵۵۳۵ باشد")
 
     phone_home = bool(body.get("phone_home", False))
@@ -1270,15 +1404,94 @@ async def run_setup(request: Request):
 
     token = await create_session()
     log_activity("system", f"پنل راه‌اندازی شد — آدرس عمومی: {host}", "ok")
-    logger.info(f"Setup completed. Public host={host}, panel port={port}")
+    logger.info(f"Setup completed. Public host={host}, panel port={port}, "
+                f"link port={effective_public_port()}, internal_tls={panel_tls_enabled()}")
     resp = JSONResponse({
         "ok": True,
         "host": host,
         "port": port,
+        "link_port": effective_public_port(),
+        "tls": panel_tls_enabled(),
         "restart_required": True,   # اگر پورت عوض شده باشد برای اعمال نیاز به ری‌استارت سرویس است
     })
     resp.set_cookie(SESSION_COOKIE, token, max_age=SESSION_TTL, httponly=True, samesite="lax", path="/")
     return resp
+
+
+# ── Settings: شبکه (host / port / public_port / tls) ──────────────────────────
+@app.get("/api/settings/network")
+async def get_network_settings(_=Depends(require_auth)):
+    return {
+        "host": "" if CONFIG["host"] == "localhost" else CONFIG["host"],
+        "port": CONFIG["port"],
+        "public_port": CONFIG.get("public_port"),
+        "public_port_auto": CONFIG.get("public_port") is None,
+        "effective_public_port": effective_public_port(),
+        "tls": panel_tls_enabled(),
+        "tls_env_locked": "RVG_TLS" in os.environ,
+    }
+
+
+@app.post("/api/settings/network")
+async def set_network_settings(request: Request, _=Depends(require_auth)):
+    body = await request.json()
+    restart_required = False
+
+    if "host" in body:
+        host = str(body.get("host") or "").strip().lower()
+        host = host.replace("http://", "").replace("https://", "").rstrip("/").strip()
+        if host and (" " in host or "/" in host or "@" in host):
+            raise HTTPException(status_code=400, detail="آدرس عمومی نامعتبر است")
+        CONFIG["host"] = host or "localhost"
+
+    if "port" in body:
+        try:
+            port = int(body.get("port"))
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="پورت نامعتبر است")
+        if not (1 <= port <= 65535):
+            raise HTTPException(status_code=400, detail="پورت باید بین ۱ تا ۶۵۵۳۵ باشد")
+        if port != CONFIG["port"]:
+            if "PORT" in os.environ:
+                raise HTTPException(status_code=400, detail="پورت با متغیر محیطی PORT قفل شده است")
+            CONFIG["port"] = port
+            restart_required = True
+
+    if "public_port" in body:
+        raw_pp = body.get("public_port")
+        if raw_pp in (None, ""):
+            CONFIG["public_port"] = None   # خودکار
+        else:
+            try:
+                pp = int(raw_pp)
+            except (TypeError, ValueError):
+                raise HTTPException(status_code=400, detail="پورت عمومی نامعتبر است")
+            if not (1 <= pp <= 65535):
+                raise HTTPException(status_code=400, detail="پورت باید بین ۱ تا ۶۵۵۳۵ باشد")
+            if pp != CONFIG.get("public_port"):
+                CONFIG["public_port"] = pp
+
+    if "tls" in body:
+        if "RVG_TLS" in os.environ:
+            raise HTTPException(status_code=400, detail="حالت TLS با متغیر محیطی RVG_TLS قفل شده است")
+        new_tls = bool(body.get("tls"))
+        if new_tls != bool(CONFIG.get("tls", True)):
+            CONFIG["tls"] = new_tls
+            restart_required = True  # ssl context هنگام بایند ساخته می‌شود
+
+    await save_state()
+    log_activity(
+        "system",
+        f"تنظیمات شبکه به‌روز شد — host={CONFIG['host']}, port={CONFIG['port']}, "
+        f"link_port={effective_public_port()}, tls={'internal' if panel_tls_enabled() else 'external'}",
+        "info",
+    )
+    return {
+        "ok": True,
+        "restart_required": restart_required,
+        "effective_public_port": effective_public_port(),
+        "tls": panel_tls_enabled(),
+    }
 
 
 @app.post("/api/login")
@@ -1881,7 +2094,7 @@ async def _create_link_core(body: dict) -> dict:
         **LINKS[uid],
         "expired": False,
         "vless_link": generate_share_link(uid, host, remark=f"RVG-{label}", protocol=protocol),
-        "sub_url": f"https://{host}/sub/{uid}",
+        "sub_url": f"{public_base_url()}/sub/{uid}",
     }
 
 @app.post("/api/links")
@@ -1921,7 +2134,7 @@ async def list_links(_=Depends(require_auth)):
             "protocol": proto,
             "expired": is_link_expired(d),
             "vless_link": generate_share_link(uid, host, remark=f"RVG-{d['label']}", protocol=proto),
-            "sub_url": f"https://{host}/sub/{uid}",
+            "sub_url": f"{public_base_url()}/sub/{uid}",
         })
     result.sort(key=lambda x: x["created_at"], reverse=True)
     return {"links": result}
@@ -2837,7 +3050,7 @@ async def public_sub_data(uuid_key: str, request: Request):
         "locked": False,
         "name": f"پنل: {sub['name']}",
         "desc": sub.get("desc", ""),
-        "sub_url": f"https://{host}/sub-group/{uuid_key}",
+        "sub_url": f"{public_base_url()}/sub-group/{uuid_key}",
         "active_connections": active_conns,
         "links": links_out, # اینجا همان لیست کامل شماست
     }
@@ -3002,6 +3215,31 @@ async def test_ws_redirect():
     return HTMLResponse(content="<script>location.href='/dashboard'</script>")
 
 if __name__ == "__main__":
+    # تنظیمات ماندگار (tls/port/public_port) قبل از بایند خوانده می‌شود تا تصمیم
+    # TLS درست باشد؛ متغیرهای محیطی اولویت دارند.
+    _peek_startup_settings()
+
+    ssl_args = {}
+    if panel_tls_enabled():
+        try:
+            import tlscert
+            cert_path, key_path = tlscert.ensure_panel_cert(get_host())
+            ssl_args = {"ssl_certfile": str(cert_path), "ssl_keyfile": str(key_path)}
+        except Exception as exc:
+            logger.error(
+                f"TLS: ساخت/بارگذاری گواهی self-signed ناموفق بود ({exc}) — "
+                f"پنل بدون TLS (HTTP) اجرا می‌شود"
+            )
+
+    if ssl_args:
+        logger.info(
+            f"TLS فعال — پنل روی https://0.0.0.0:{CONFIG['port']} سرو می‌شود "
+            f"(گواهی self-signed؛ لینک‌ها allowInsecure می‌گیرند). برای TLS واقعی با "
+            f"Caddy/nginx جلوی پنل: RVG_TLS=0 و public-port=443"
+        )
+    else:
+        logger.info("TLS داخلی خاموش — فرض: Caddy/nginx یا زیرساخت بیرونی TLS را terminate می‌کند")
+
     uvicorn.run(
         app,
         host="0.0.0.0",
@@ -3009,8 +3247,9 @@ if __name__ == "__main__":
         log_level="warning",  # access log هر request عادی (polling/stats/...) رو چاپ نکنه؛
                               # خطاهای واقعی uvicorn.error همچنان با warning+ دیده می‌شن
         access_log=False,    # هر endpoint polling (stats/system/links) با فرکانس بالا صدا زده
-                              # می‌شه؛ چاپ یک خط لاگ به‌ازای هر کدوم فشار I/O بی‌مورد به دیسک/کنسوله
+                             # می‌شه؛ چاپ یک خط لاگ به‌ازای هر کدوم فشار I/O بی‌مورد به دیسک/کنسوله
         workers=1,
         loop="auto",         # uvloop رو در صورت نصب بودن استفاده می‌کنه، وگرنه بدون کرش fallback می‌کنه
         http="auto",
+        **ssl_args,
     )
